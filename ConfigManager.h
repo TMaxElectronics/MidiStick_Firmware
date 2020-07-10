@@ -25,9 +25,17 @@ typedef struct{
     uint32_t maxOnTime;
     uint32_t minOnTime;
     
-    uint16_t maxDuty;       //combined into one word memory location -> can only be written together (maybe)
-    uint16_t limiterMode;
+    uint16_t maxDuty;
+    uint16_t holdoffTime;
+    uint16_t ontimeLimit;
 } CoilConfig;
+
+typedef struct{
+    uint32_t fwStatus;
+    uint32_t fwVersion;
+    uint32_t fwCrc;
+    uint8_t data[];
+} FWUpdate;
 
 //this is where the configuration info is saved
 const struct {
@@ -50,6 +58,10 @@ unsigned NVM_isCoilConfigValid(uint8_t index);
 
 const char* NVM_getDeviceName();        //returns the pointer to the device name
 
+void NVM_eraseFWUpdate();
+void NVM_writeFWUpdate(void* src, uint32_t pageOffset);
+
+void NVM_memclr4096(void* start, uint32_t length);
 void NVM_memcpy128(void * dst, void * src, uint32_t length);    //Copy over data aligned to 128 byte boundaries (uses the ROW_PROGRAMM operation)
 
 //I got this code from one of my older projects, which got it from another older project :/ Though it looks like it might be from the plib, which I ant to use as little as possible, because of its deprecation

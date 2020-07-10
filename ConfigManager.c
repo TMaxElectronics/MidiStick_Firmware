@@ -4,8 +4,33 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
 
-MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
-CoilConfig defaultCoil = {"default coil            ", 0, 0, 0, 0};                              //default coil must not output anything, so the max on time is set to zero
+MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
+CoilConfig defaultCoil = {"default coil            ", 100, 0, 10, 25, 400};                              //default coil must not output anything, so the max on time is set to zero
+
+/*
+ * This here is a bit of voodoo. In the linker I have ordered the compiler not to touch NVM above 0x9D020000 when generating code, so this will always be free.
+ * It is exactly at the half way point in NVM, so we have got 50% of our flash after this available for new code.
+ * 
+ * At atartup the bootloader checks the value at 0x9D020000, which indicates the state of the program. 
+ * 0 or 0xff means it has been cleared/not programed, and it will jump to normal execution.
+ * 0x10 is the code for normal running code. It jumps to execution
+ * 0x20 is the code for a pending software update. The bootloader will calculate the CRC and if it matches the one written by the updater, it proceeds to erase the code from 0x9D00000 - 0x9D01ffff, and write to that memory region the new code from 0x9D020000 - 0x9D03fffff
+ */
+FWUpdate * NVM_newFW = 0x9D020000; 
+
+void NVM_eraseFWUpdate(){
+    NVM_memclr4096(0, 0x200000);
+}
+
+void NVM_writeFWUpdate(void* src, uint32_t pageOffset){
+    NVM_memclr4096(NVM_newFW, 0x200000);
+    NVM_memcpy128((pageOffset * BYTE_PAGE_SIZE), src, BYTE_PAGE_SIZE);
+}
+
+void NVM_memclr4096(void* start, uint32_t length){
+    uint32_t currOffset = 0;
+    for(;currOffset < length; currOffset += BYTE_PAGE_SIZE) NVM_erasePage(start + currOffset);
+}
 
 unsigned NVM_readProgrammConfig(MidiProgramm * dest, uint8_t index){
     if(index > 127){
@@ -90,7 +115,8 @@ unsigned NVM_isCoilConfigValid(uint8_t index){
 }
 
 void NVM_copyCoilData(CoilConfig * dst, CoilConfig * src){
-    dst->limiterMode = src->limiterMode;
+    dst->holdoffTime = src->holdoffTime;
+    dst->ontimeLimit = src->ontimeLimit;
     dst->maxDuty = src->maxDuty;
     dst->maxOnTime = src->maxOnTime;
     dst->minOnTime = src->minOnTime;
