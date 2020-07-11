@@ -11,10 +11,14 @@
 #include "MidiController.h"
 #include "ConfigManager.h"
 #include "NoteManager.h"
+#include "UART32.h"
 
 struct{
     float bendFactor;   
-    float bendRange;    
+    unsigned sustainPedal;
+    unsigned damperPedal;
+    uint16_t bendMSB;   
+    uint16_t bendLSB;
     uint16_t currOT;
     uint16_t currVolume;
     float attacCoef;
@@ -37,6 +41,12 @@ CoilConfig * Midi_currCoil;
 uint8_t Midi_currCoilIndex = 0xff;          //this is used by the pc software to figure out which configuration is active
 uint16_t Midi_minOnTimeVal = 0;
 uint16_t Midi_maxOnTimeVal = 0;
+
+uint16_t Midi_currRPN = 0xffff;
+
+uint8_t adyn = 0;
+uint8_t bdyn = 0;
+uint8_t cdyn = 0;
 
 //TODO make this dynamic
 //uint8_t Midi_currChannel = 0;
@@ -68,8 +78,13 @@ uint32_t FWUpdate_currPLOffset = 0;
 uint8_t * payload = 0;
 uint16_t currPage = 0;
 
+uint8_t count = 0;
+uint32_t t1 = 0;
+
 void Midi_init()
 {
+    UART_init(115200, 0);
+    UART_sendString("Hello World!", 1);
     //allocate ram for programm and coild configurations
     //Midi_currProgramm = malloc(sizeof(MidiProgramm));
     Midi_currOverrideProgramm = malloc(sizeof(MidiProgramm));
@@ -89,6 +104,8 @@ void Midi_init()
     //calculate required coefficients
     //Midi_setNoteOnTime(Midi_currCoil->minOnTime + ((Midi_currCoil->maxOnTime * Midi_currVolume) / 127), 0);
     Midi_calculateADSR(16);
+    
+    srand(1337);
     
     //get note timers ready
     Midi_initTimers();
@@ -145,7 +162,7 @@ void Midi_SOFHandler(){
                             Midi_voice[currVoice].currOTMult = (float) (MIDI_programmOverrideEnabled ? Midi_currOverrideProgramm->sustainPower : ChannelInfo[currChannel].currProgramm.sustainPower) / 100.0;
                             Midi_voice[currVoice].adsrState = SUSTAIN;
                         }
-                        Midi_voice[currVoice].currNoteOT = Midi_minOnTimeVal + (uint16_t) ((float) Midi_voice[currVoice].currReqNoteOT * Midi_voice[currVoice].currOTMult);
+                        Midi_voice[currVoice].currNoteOT = Midi_minOnTimeVal + (uint16_t) ((float) Midi_voice[currVoice].lastReqNoteOT * Midi_voice[currVoice].currOTMult);
                     }
                     break;
                 }else{  //note is off again -> fall through to release
@@ -158,6 +175,8 @@ void Midi_SOFHandler(){
                     Midi_voice[currVoice].adsrState = RELEASE;
                 }
             case RELEASE:
+                if(ChannelInfo[currChannel].sustainPedal) break;
+                
                 if(Midi_voice[currVoice].currReqNoteOT > 0){    //note is on again -> continue attac
                     Midi_voice[currVoice].adsrState = ATTAC;
                     break;
@@ -176,6 +195,27 @@ void Midi_SOFHandler(){
     }
     
     LATBbits.LATB8 = accumulatedOnTime < halfLimit;
+    
+    if(count++ > cdyn){
+        if(ChannelInfo[9].bendFactor > 0.01){
+            ChannelInfo[9].bendFactor -= 0.01;
+            uint8_t currVoice = 0;
+            for(;currVoice < MIDI_VOICECOUNT; currVoice++){
+                if(Midi_voice[currVoice].currNote != 0xff && Midi_voice[currVoice].currNoteOrigin == 9){ 
+                    if(ChannelInfo[9].bendFactor < 0.1) {
+                        Midi_voice[currVoice].currNote = 0xff;
+                        Midi_voice[currVoice].lastReqNoteOT = Midi_voice[currVoice].currReqNoteOT;
+                        Midi_voice[currVoice].currReqNoteOT = 0;
+                    }else{
+                        int16_t currNote = Midi_voice[currVoice].currNote + (int8_t) (MIDI_programmOverrideEnabled ? Midi_currOverrideProgramm->noteOffset : ChannelInfo[9].currProgramm.noteOffset);
+                        uint16_t nextNoteFreq = (uint16_t) ((float) Midi_NoteFreq[currNote] * ChannelInfo[Midi_voice[currVoice].currNoteOrigin].bendFactor);
+                        Midi_setNoteTPR(currVoice, nextNoteFreq); 
+                    }
+                }
+            }
+        }
+        count = 0;
+    }
     
     //if(++resetCounter > 4){
         //resetCounter = 0;
@@ -216,6 +256,7 @@ void Midi_run(){
             uint8_t cmd = ReceivedDataBuffer[1] & 0xf0;
 
             if(cmd == MIDI_CMD_NOTE_OFF){
+                UART_sendString("noteOff", 1);
                 NoteManager_removeNote(ReceivedDataBuffer[2]);
 
                 uint8_t currVoice = 0;
@@ -227,7 +268,9 @@ void Midi_run(){
                     }
                 }
             }else if(cmd == MIDI_CMD_NOTE_ON){
+                UART_sendString("noteOn ", 0);
                 if(ReceivedDataBuffer[3] > 0){  //velocity is > 0 -> turn note on
+                    UART_sendString(" On", 1);
                     NoteManager_addNote(ReceivedDataBuffer[2], ReceivedDataBuffer[3]);
                     //decide which voice should play the new note
                     uint8_t currVoice = 0;
@@ -258,8 +301,11 @@ void Midi_run(){
                             Midi_voice[oldestIndex].currNoteOrigin = channel;
                         }
                     }
+                    
+                    ChannelInfo[9].bendFactor = 1;
 
                 }else{  //velocity is == 0 -> turn note off (some software uses this instead of the note off command)
+                    UART_sendString("off", 1);
                     NoteManager_removeNote(ReceivedDataBuffer[2]);
                     uint8_t currVoice = 0;
                     for(;currVoice < MIDI_VOICECOUNT; currVoice++){
@@ -272,6 +318,7 @@ void Midi_run(){
                 }
 
             }else if(cmd == MIDI_CMD_CONTROLLER_CHANGE){
+                UART_sendString("cc", 1);
                 if(ReceivedDataBuffer[2] == MIDI_CC_ALL_SOUND_OFF || ReceivedDataBuffer[2] == MIDI_CC_ALL_NOTES_OFF || ReceivedDataBuffer[2] == MIDI_CC_RESET_ALL_CONTROLLERS){ //Midi panic, and sometimes used by programms when you press the "stop" button
                     NoteManager_clearList();
 
@@ -295,12 +342,45 @@ void Midi_run(){
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_VOLUME){
                     ChannelInfo[channel].currVolume = ReceivedDataBuffer[3];
                     Midi_setNoteOnTime(Midi_currCoil->minOnTime + ((Midi_currCoil->maxOnTime * ChannelInfo[channel].currVolume) / 127), channel);
+                }else if(ReceivedDataBuffer[2] == 0x1){
+                    adyn = ReceivedDataBuffer[3];
+                }else if(ReceivedDataBuffer[2] == 0x2){
+                    bdyn = ReceivedDataBuffer[3];
+                }else if(ReceivedDataBuffer[2] == 0x4){
+                    cdyn = ReceivedDataBuffer[3];
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_RPN_LSB){
+                    Midi_currRPN &= 0xff00;
+                    Midi_currRPN |= ReceivedDataBuffer[3];
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_RPN_MSB){
+                    Midi_currRPN &= 0x00ff;
+                    Midi_currRPN |= ReceivedDataBuffer[3] << 8;
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_DATA_FINE){
+                    if(Midi_currRPN == MIDI_RPN_BENDRANGE){     //get the 100ths semitones for the bendrange
+                        ChannelInfo[channel].bendLSB = ReceivedDataBuffer[3];
+                        ChannelInfo[channel].currProgramm.bendRange = (float) ChannelInfo[channel].bendMSB + (float) ChannelInfo[channel].bendLSB / 100.0;
+                        UART_sendString("newBend low ", 0); UART_sendInt(ChannelInfo[channel].bendLSB, 0); UART_sendString(" = ", 0); UART_sendInt((uint16_t) (ChannelInfo[channel].currProgramm.bendRange * 100.0), 1);
+                    }
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_DATA_COARSE){
+                    if(Midi_currRPN == MIDI_RPN_BENDRANGE){     //get the full semitones for the bendrange
+                        ChannelInfo[channel].bendMSB = ReceivedDataBuffer[3];
+                        ChannelInfo[channel].currProgramm.bendRange = (float) ChannelInfo[channel].bendMSB + (float) ChannelInfo[channel].bendLSB / 100.0;
+                        UART_sendString("newBend high ", 0); UART_sendInt(ChannelInfo[channel].bendMSB, 0); UART_sendString(" = ", 0); UART_sendInt((uint16_t) (ChannelInfo[channel].currProgramm.bendRange * 100.0), 1);
+                    }
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_NRPN_LSB || ReceivedDataBuffer[2] == MIDI_CC_NRPN_MSB){
+                    Midi_currRPN = 0xffff;
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_SUSTAIN_PEDAL){
+                    ChannelInfo[channel].sustainPedal = ReceivedDataBuffer[3] > 63;
+                    UART_sendString(ChannelInfo[channel].sustainPedal ? "sustain turned on" : "sustain turned off", 1);
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_DAMPER_PEDAL){
+                    ChannelInfo[channel].damperPedal = ReceivedDataBuffer[3] > 63;
+                    UART_sendString(ChannelInfo[channel].damperPedal ? "damper turned on" : "damper turned off", 1);
                 }
+
 
             }else if(cmd == MIDI_CMD_PITCH_BEND){
                 //calculate the current bend factor as 2^(bend_range * requested_bend)
                 double bendOffset = (double) (((ReceivedDataBuffer[3] << 7) | ReceivedDataBuffer[2]) - 8192) / 8192.0;
-                ChannelInfo[channel].bendFactor = pow(2, (bendOffset * (double) (MIDI_programmOverrideEnabled ? Midi_currOverrideProgramm->bendRange : ChannelInfo[channel].currProgramm.bendRange)));
+                ChannelInfo[channel].bendFactor = powf(2, (bendOffset * (float) (MIDI_programmOverrideEnabled ? Midi_currOverrideProgramm->bendRange : ChannelInfo[channel].currProgramm.bendRange)) / 12.0);
 
                 uint8_t currVoice = 0;
                 for(;currVoice < MIDI_VOICECOUNT; currVoice++){
@@ -330,7 +410,7 @@ void Midi_run(){
                 MIDI_programmOverrideEnabled = ConfigReceivedDataBuffer[1];
             }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_ADSR_PREV){
                 Midi_currOverrideProgramm->noteOffset = ConfigReceivedDataBuffer[1];
-                Midi_currOverrideProgramm->bendRange = ConfigReceivedDataBuffer[2];
+                Midi_currOverrideProgramm->bendRange = (float) ConfigReceivedDataBuffer[2];
                 Midi_currOverrideProgramm->AttacTime = (ConfigReceivedDataBuffer[6] << 24) | (ConfigReceivedDataBuffer[5] << 16) | (ConfigReceivedDataBuffer[4] << 8) | ConfigReceivedDataBuffer[3];
                 Midi_currOverrideProgramm->DecayTime = (ConfigReceivedDataBuffer[10] << 24) | (ConfigReceivedDataBuffer[9] << 16) | (ConfigReceivedDataBuffer[8] << 8) | ConfigReceivedDataBuffer[7];   //TODO change to release
                 Midi_currOverrideProgramm->releaseTime = (ConfigReceivedDataBuffer[14] << 24) | (ConfigReceivedDataBuffer[13] << 16) | (ConfigReceivedDataBuffer[12] << 8) | ConfigReceivedDataBuffer[11];   //TODO change to release
@@ -343,7 +423,7 @@ void Midi_run(){
                     ToSendDataBuffer[0] = 0x20;
                     ToSendDataBuffer[1] = ConfigReceivedDataBuffer[1];
                     ToSendDataBuffer[2] = requested.noteOffset;
-                    ToSendDataBuffer[3] = requested.bendRange;
+                    ToSendDataBuffer[3] = (uint8_t) requested.bendRange;
                     ToSendDataBuffer[7] = (requested.AttacTime >> 24);
                     ToSendDataBuffer[6] = (requested.AttacTime >> 16);
                     ToSendDataBuffer[5] = (requested.AttacTime >> 8);
@@ -496,7 +576,7 @@ void Midi_setNote(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel
     Midi_voice[voice].noteAge = 0;
     Midi_voice[voice].currNote = note;
     Midi_voice[voice].adsrState = NOTE_OFF;    //reset the ADSR state to note off, so attac will work, even if the note was still on
-    Midi_voice[voice].currReqNoteOT = (ChannelInfo[Midi_voice[voice].currNoteOrigin].currOT * velocity) / 127 - Midi_minOnTimeVal;      //currReqNoteOT dictates the on time, added to the minimum setting
+    Midi_voice[voice].currReqNoteOT = (((ChannelInfo[Midi_voice[voice].currNoteOrigin].currOT * velocity * (ChannelInfo[channel].damperPedal ? 6 : 10)) / 1270)) - Midi_minOnTimeVal;      //currReqNoteOT dictates the on time, added to the minimum setting
     //TODO implement velocity based ADSR and volume
 }
 
@@ -573,7 +653,7 @@ void Midi_initTimers(){
 }
 
 void Midi_setNoteTPR(uint8_t voice, uint16_t freq){
-    if(freq > 2000) return;
+    if(freq < 10) return;
     uint32_t divVal = 187500 / freq;
     switch(voice){
         case 0:
@@ -584,6 +664,7 @@ void Midi_setNoteTPR(uint8_t voice, uint16_t freq){
                 T2CONSET = _T2CON_ON_MASK;
             }
             PR2 = divVal & 0xffff;    //lower 16 bits of the divider are done in hardware
+            t1 = PR2;
             if(TMR2 > PR2) TMR2 = 0;
             break;
         case 1:
@@ -641,6 +722,7 @@ void Midi_setNoteOnTime(uint16_t onTimeUs, uint8_t ch){
 
 void __ISR(_TIMER_2_VECTOR) Midi_note1ISR(){
     IFS0CLR = _IFS0_T2IF_MASK;
+    if(adyn != 0 && bdyn != 0) PR2 = rand() / (RAND_MAX / (adyn * 5)) + (t1 / bdyn);
     Midi_timerHandler(0);
 }
 

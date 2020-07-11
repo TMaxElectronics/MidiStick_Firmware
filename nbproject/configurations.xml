@@ -19,6 +19,7 @@
       <itemPath>ConfigManager.h</itemPath>
       <itemPath>MidiController.h</itemPath>
       <itemPath>NoteManager.h</itemPath>
+      <itemPath>UART32.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -37,6 +38,7 @@
       <itemPath>MidiController.c</itemPath>
       <itemPath>ConfigManager.c</itemPath>
       <itemPath>NoteManager.c</itemPath>
+      <itemPath>UART32.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

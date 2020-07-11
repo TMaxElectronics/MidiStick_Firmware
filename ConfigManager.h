@@ -17,7 +17,7 @@ typedef struct{
     uint32_t amAmpl;
     
     int32_t noteOffset;
-    uint32_t bendRange;
+    float bendRange;
 } MidiProgramm;
 
 typedef struct{
