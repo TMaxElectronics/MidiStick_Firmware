@@ -81,10 +81,11 @@ uint16_t currPage = 0;
 uint8_t count = 0;
 uint32_t t1 = 0;
 
-void Midi_init()
-{
+void Midi_init(){
+    //initialize debug UART
     UART_init(115200, 0);
-    UART_sendString("Hello World!", 1);
+    UART_sendString("\r\n\n\nMidiStick Beta V2.0", 1);
+    
     //allocate ram for programm and coild configurations
     //Midi_currProgramm = malloc(sizeof(MidiProgramm));
     Midi_currOverrideProgramm = malloc(sizeof(MidiProgramm));
@@ -220,7 +221,7 @@ void Midi_SOFHandler(){
     //if(++resetCounter > 4){
         //resetCounter = 0;
     //}
-    
+    //if(T1CON & _T1CON_ON_MASK) UART_sendString((LATB & _LATB_LATB15_MASK) ? "output on" : "holdoff active", 1);
     //Turn the LED on if any voices are active
     if(anyNoteOn){   //enable signal LED
         LATBCLR = _LATB_LATB7_MASK;
@@ -256,7 +257,7 @@ void Midi_run(){
             uint8_t cmd = ReceivedDataBuffer[1] & 0xf0;
 
             if(cmd == MIDI_CMD_NOTE_OFF){
-                UART_sendString("noteOff", 1);
+                //UART_sendString("noteOff", 1);
                 NoteManager_removeNote(ReceivedDataBuffer[2]);
 
                 uint8_t currVoice = 0;
@@ -268,9 +269,9 @@ void Midi_run(){
                     }
                 }
             }else if(cmd == MIDI_CMD_NOTE_ON){
-                UART_sendString("noteOn ", 0);
+                //UART_sendString("noteOn ", 0);
                 if(ReceivedDataBuffer[3] > 0){  //velocity is > 0 -> turn note on
-                    UART_sendString(" On", 1);
+                    //UART_sendString(" On", 1);
                     NoteManager_addNote(ReceivedDataBuffer[2], ReceivedDataBuffer[3]);
                     //decide which voice should play the new note
                     uint8_t currVoice = 0;
@@ -305,7 +306,7 @@ void Midi_run(){
                     ChannelInfo[9].bendFactor = 1;
 
                 }else{  //velocity is == 0 -> turn note off (some software uses this instead of the note off command)
-                    UART_sendString("off", 1);
+                    //UART_sendString("off", 1);
                     NoteManager_removeNote(ReceivedDataBuffer[2]);
                     uint8_t currVoice = 0;
                     for(;currVoice < MIDI_VOICECOUNT; currVoice++){
@@ -318,7 +319,6 @@ void Midi_run(){
                 }
 
             }else if(cmd == MIDI_CMD_CONTROLLER_CHANGE){
-                UART_sendString("cc", 1);
                 if(ReceivedDataBuffer[2] == MIDI_CC_ALL_SOUND_OFF || ReceivedDataBuffer[2] == MIDI_CC_ALL_NOTES_OFF || ReceivedDataBuffer[2] == MIDI_CC_RESET_ALL_CONTROLLERS){ //Midi panic, and sometimes used by programms when you press the "stop" button
                     NoteManager_clearList();
 
@@ -340,6 +340,7 @@ void Midi_run(){
                         ChannelInfo[currChannel].bendFactor = 1;
                     }
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_VOLUME){
+                    UART_sendString("vol", 1);
                     ChannelInfo[channel].currVolume = ReceivedDataBuffer[3];
                     Midi_setNoteOnTime(Midi_currCoil->minOnTime + ((Midi_currCoil->maxOnTime * ChannelInfo[channel].currVolume) / 127), channel);
                 }else if(ReceivedDataBuffer[2] == 0x1){
@@ -577,7 +578,9 @@ void Midi_setNote(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel
     Midi_voice[voice].currNote = note;
     Midi_voice[voice].adsrState = NOTE_OFF;    //reset the ADSR state to note off, so attac will work, even if the note was still on
     Midi_voice[voice].currReqNoteOT = (((ChannelInfo[Midi_voice[voice].currNoteOrigin].currOT * velocity * (ChannelInfo[channel].damperPedal ? 6 : 10)) / 1270)) - Midi_minOnTimeVal;      //currReqNoteOT dictates the on time, added to the minimum setting
-    //TODO implement velocity based ADSR and volume
+    
+    UART_sendString("OT: ", 0); UART_sendInt(Midi_voice[voice].currReqNoteOT, 1);
+    //TODO implement velocity based ADSR
 }
 
 void Midi_calculateADSR(uint8_t channel){
@@ -719,10 +722,14 @@ void Midi_setNoteOnTime(uint16_t onTimeUs, uint8_t ch){
  *  once timer 1 overflows, we turn the output off again and disable the timer again (effectively one shot mode)
  * 
  */
+int32_t offset = 0;
+unsigned dir = 0;
 
 void __ISR(_TIMER_2_VECTOR) Midi_note1ISR(){
     IFS0CLR = _IFS0_T2IF_MASK;
-    if(adyn != 0 && bdyn != 0) PR2 = rand() / (RAND_MAX / (adyn * 5)) + (t1 / bdyn);
+    /*if(adyn != 0 && bdyn != 0) PR2 = t1 + offset;//rand() / (RAND_MAX / (adyn * 5)) + (t1 / bdyn);
+    offset += dir ? adyn : -adyn;
+    if(offset > bdyn || offset < -bdyn) dir != dir;*/
     Midi_timerHandler(0);
 }
 
@@ -743,25 +750,33 @@ void __ISR(_TIMER_5_VECTOR) Midi_note4ISR(){
 
 void __ISR(_TIMER_1_VECTOR) Midi_noteOffISR(){
     IFS0bits.T1IF = 0;
-    LATBCLR = (_LATB_LATB15_MASK | _LATB_LATB5_MASK);  //RB15
     
-    if(noteHoldoff){
+    if(!(LATB & _LATB_LATB5_MASK)){
         noteHoldoff = 0;
-        IEC0SET = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK;
+        IEC0SET = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
         T1CONCLR = _T1CON_ON_MASK;
-        PR1 = 0;
+        PR1 = 10;
         TMR1 = 0;
     }else{
+        LATBCLR = (_LATB_LATB15_MASK | _LATB_LATB5_MASK);  //RB15
         noteOffTime = _CP0_GET_COUNT();     //core timer runs at 1/2 CPU freq = 24MHz, so 1 TMR count = 32 CoreTimer count
         noteHoldoff = 1;
         TMR1 = 0;
-        PR1 = holdOff;
+        if(holdOff < 10){
+            noteHoldoff = 0;
+            IEC0SET = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
+            T1CONCLR = _T1CON_ON_MASK;
+            PR1 = 10;
+            TMR1 = 0;
+        }else{
+            PR1 = holdOff;
+        }
+        
     }
 }
 
 inline void Midi_timerHandler(uint8_t voice){
     if(Midi_voice[voice].currNoteOT == 0) return;
-    if(noteHoldoff) return;
     IEC0CLR = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK;
     uint16_t newLimitTime = accumulatedOnTime + Midi_voice[voice].currNoteOT;
     int16_t nextOnTime = Midi_voice[voice].currNoteOT - ((Midi_voice[voice].currNoteOT * ((newLimitTime > halfLimit) ? (newLimitTime - halfLimit) : 0)) / halfLimit);

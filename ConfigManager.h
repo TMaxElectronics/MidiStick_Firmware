@@ -42,6 +42,8 @@ const struct {
     MidiProgramm programm[128]; 
     CoilConfig coils[32];
     char name[24];
+    uint8_t switchMode;
+    uint8_t auxMode;
 } ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog))) = {.name = "Midi Stick V1.0         "};
 
 //read and write for programm data
