@@ -1,3 +1,4 @@
 build/tte/production/ConfigManager.o:  \
 ConfigManager.c  \
-ConfigManager.h 
+ConfigManager.h  \
+ UART32.h 

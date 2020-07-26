@@ -41,6 +41,8 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <plib.h>
 #include "MidiController.h"
+#include "UART32.h"
+#include "ConfigManager.h"
 
 void initIO();
 void initUSB();
@@ -61,6 +63,16 @@ void main(void) {
     
     initIO();
     initUSB();
+    //initialize debug UART
+    UART_init(115200, 0);
+    UART_sendString("\r\n\n\nMidiStick ", 0); UART_sendString(NVM_getFWVersionString(), 0); UART_sendString(" - from ", 0); UART_sendString(NVM_getFWCompileDate(), 0); UART_sendString(" ", 0); UART_sendString(NVM_getFWCompileTime(), 1);
+    
+    char * blVer = NVM_getBootloaderVersionString();
+    UART_sendString("\r\nBootloader V", 0); UART_sendString(blVer, 1);
+    UART_sendString("Serial number: ", 0); UART_sendInt(NVM_getSerialNumber(), 1);
+    free(blVer);
+    
+    
     
     //enable interrupts. the asm stuff is required to set the CP0 register to enable them
     INTCONbits.MVEC = 1;
@@ -68,6 +80,8 @@ void main(void) {
     asm volatile("mfc0   %0,$12" : "=r"(val));
     val |= 0b1;
     asm volatile("mtc0   %0,$12" : "+r"(val));
+    
+    NVM_finishFWUpdate();
     
     while(1){   //run the required tasks
         USBDeviceTasks();
@@ -79,7 +93,7 @@ void initIO(){
     TRISA = 0;
     LATA = 0;
     TRISBCLR = _LATB_LATB5_MASK | _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK | _LATB_LATB15_MASK;
-    ODCASET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
+    ODCBSET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
     LATBSET = _LATB_LATB7_MASK | _LATB_LATB9_MASK;
     LATBCLR = _LATB_LATB5_MASK | _LATB_LATB8_MASK | _LATB_LATB15_MASK;
 }

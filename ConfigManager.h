@@ -3,6 +3,10 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
 
+#define FW_STATE_NORMAL 0xff
+#define FW_STATE_UPDATEREQUEST 0x01     //copy the firmware as normal
+#define FW_STATE_VERIFICATION 0x02      //copy the FW and overwrite settings
+
 typedef struct{
     char name[24];
     uint32_t AttacTime;
@@ -21,9 +25,9 @@ typedef struct{
 } MidiProgramm;
 
 typedef struct{
-    char name[24];
-    uint32_t maxOnTime;
-    uint32_t minOnTime;
+    char name[22];
+    uint16_t maxOnTime;
+    uint16_t minOnTime;
     
     uint16_t maxDuty;
     uint16_t holdoffTime;
@@ -31,20 +35,19 @@ typedef struct{
 } CoilConfig;
 
 typedef struct{
-    uint32_t fwStatus;
-    uint32_t fwVersion;
-    uint32_t fwCrc;
-    uint8_t data[];
-} FWUpdate;
-
-//this is where the configuration info is saved
-const struct {
-    MidiProgramm programm[128]; 
-    CoilConfig coils[32];
     char name[24];
-    uint8_t switchMode;
+    uint8_t ledMode1;
+    uint8_t ledMode2;
+    uint8_t ledMode3;
     uint8_t auxMode;
-} ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog))) = {.name = "Midi Stick V1.0         "};
+    
+    uint8_t fwStatus;
+    char fwVersion[24];
+    uint32_t resMemStart;
+    uint32_t resMemEnd;
+    char compileDate[20];
+    char compileTime[20];
+} CFGData;
 
 //read and write for programm data
 unsigned NVM_readProgrammConfig(MidiProgramm * dest, uint8_t index);    //reads config from NVM (Non Volatile Memory) to ram
@@ -63,6 +66,8 @@ const char* NVM_getDeviceName();        //returns the pointer to the device name
 void NVM_eraseFWUpdate();
 void NVM_writeFWUpdate(void* src, uint32_t pageOffset);
 
+unsigned NVM_writeCFG(CFGData * src);
+
 void NVM_memclr4096(void* start, uint32_t length);
 void NVM_memcpy128(void * dst, void * src, uint32_t length);    //Copy over data aligned to 128 byte boundaries (uses the ROW_PROGRAMM operation)
 
@@ -73,3 +78,19 @@ void NVM_writeRow(void* address, void * data);
 void NVM_writeWord(void* address, unsigned int data);
 void NVM_erasePage(void* address);
 unsigned int __attribute__((nomips16)) NVM_operation(unsigned int nvmop);
+uint32_t NVM_getUpdateCRC();
+void NVM_crc(uint8_t data);
+CFGData * NVM_getConfig();
+void NVM_commitFWUpdate(unsigned settingsOverwrite);
+char * NVM_getFWVersionString();
+char * NVM_getBootloaderVersionString() ;
+uint32_t NVM_getBootloaderVersion();
+void NVM_finishFWUpdate();
+
+void NVM_clearAllCoils();
+void NVM_clearAllProgramms();
+void NVM_memcpy4(void * dst, void * src, uint32_t length);
+uint32_t NVM_getSerialNumber();
+
+char * NVM_getFWCompileDate();
+char * NVM_getFWCompileTime();

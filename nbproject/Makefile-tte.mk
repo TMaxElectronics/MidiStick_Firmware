@@ -57,17 +57,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c main.c MidiController.c ConfigManager.c NoteManager.c
+SOURCEFILES_QUOTED_IF_SPACED=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c main.c MidiController.c ConfigManager.c NoteManager.c UART32.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/NoteManager.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/usb_descriptors.o.d ${OBJECTDIR}/usb_device.o.d ${OBJECTDIR}/usb_events.o.d ${OBJECTDIR}/usb_device_hid.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/MidiController.o.d ${OBJECTDIR}/ConfigManager.o.d ${OBJECTDIR}/NoteManager.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/NoteManager.o ${OBJECTDIR}/UART32.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/usb_descriptors.o.d ${OBJECTDIR}/usb_device.o.d ${OBJECTDIR}/usb_events.o.d ${OBJECTDIR}/usb_device_hid.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/MidiController.o.d ${OBJECTDIR}/ConfigManager.o.d ${OBJECTDIR}/NoteManager.o.d ${OBJECTDIR}/UART32.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/NoteManager.o
+OBJECTFILES=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/NoteManager.o ${OBJECTDIR}/UART32.o
 
 # Source Files
-SOURCEFILES=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c main.c MidiController.c ConfigManager.c NoteManager.c
+SOURCEFILES=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c main.c MidiController.c ConfigManager.c NoteManager.c UART32.c
 
 
 
@@ -91,7 +91,7 @@ endif
 	${MAKE}  -f nbproject/Makefile-tte.mk dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}
 
 MP_PROCESSOR_OPTION=32MX170F256B
-MP_LINKER_FILE_OPTION=
+MP_LINKER_FILE_OPTION=,--script="p32MX270F256B.ld"
 # ------------------------------------------------------------------------------------
 # Rules for buildStep: assemble
 ifeq ($(TYPE_IMAGE), DEBUG_RUN)
@@ -155,6 +155,12 @@ ${OBJECTDIR}/NoteManager.o: NoteManager.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/NoteManager.o 
 	@${FIXDEPS} "${OBJECTDIR}/NoteManager.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/NoteManager.o.d" -o ${OBJECTDIR}/NoteManager.o NoteManager.c    -DXPRJ_tte=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
+${OBJECTDIR}/UART32.o: UART32.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/UART32.o.d 
+	@${RM} ${OBJECTDIR}/UART32.o 
+	@${FIXDEPS} "${OBJECTDIR}/UART32.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/UART32.o.d" -o ${OBJECTDIR}/UART32.o UART32.c    -DXPRJ_tte=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
+	
 else
 ${OBJECTDIR}/usb_descriptors.o: usb_descriptors.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
@@ -204,6 +210,12 @@ ${OBJECTDIR}/NoteManager.o: NoteManager.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/NoteManager.o 
 	@${FIXDEPS} "${OBJECTDIR}/NoteManager.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/NoteManager.o.d" -o ${OBJECTDIR}/NoteManager.o NoteManager.c    -DXPRJ_tte=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
+${OBJECTDIR}/UART32.o: UART32.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/UART32.o.d 
+	@${RM} ${OBJECTDIR}/UART32.o 
+	@${FIXDEPS} "${OBJECTDIR}/UART32.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/UART32.o.d" -o ${OBJECTDIR}/UART32.o UART32.c    -DXPRJ_tte=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
+	
 endif
 
 # ------------------------------------------------------------------------------------
@@ -215,15 +227,18 @@ endif
 # ------------------------------------------------------------------------------------
 # Rules for buildStep: link
 ifeq ($(TYPE_IMAGE), DEBUG_RUN)
-dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}: ${OBJECTFILES}  nbproject/Makefile-${CND_CONF}.mk    
+dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}: ${OBJECTFILES}  nbproject/Makefile-${CND_CONF}.mk    p32MX270F256B.ld
 	@${MKDIR} dist/${CND_CONF}/${IMAGE_TYPE} 
-	${MP_CC} $(MP_EXTRA_LD_PRE) -g   -mprocessor=$(MP_PROCESSOR_OPTION)  -o dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX} ${OBJECTFILES_QUOTED_IF_SPACED}          -DXPRJ_tte=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)   -mreserve=data@0x0:0x1FC -mreserve=boot@0x1FC00490:0x1FC00BEF  -Wl,--defsym=__MPLAB_BUILD=1$(MP_EXTRA_LD_POST)$(MP_LINKER_FILE_OPTION),--defsym=__MPLAB_DEBUG=1,--defsym=__DEBUG=1,-D=__DEBUG_D,--defsym=_min_heap_size=16384,--no-code-in-dinit,--no-dinit-in-serial-mem,-Map="${DISTDIR}/${PROJECTNAME}.${IMAGE_TYPE}.map",--memorysummary,dist/${CND_CONF}/${IMAGE_TYPE}/memoryfile.xml 
+	${MP_CC} $(MP_EXTRA_LD_PRE) -g   -mprocessor=$(MP_PROCESSOR_OPTION)  -o dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX} ${OBJECTFILES_QUOTED_IF_SPACED}          -DXPRJ_tte=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)   -mreserve=data@0x0:0x1FC -mreserve=boot@0x1FC00490:0x1FC00BEF  -Wl,--defsym=__MPLAB_BUILD=1$(MP_EXTRA_LD_POST)$(MP_LINKER_FILE_OPTION),--defsym=__MPLAB_DEBUG=1,--defsym=__DEBUG=1,-D=__DEBUG_D,--defsym=_min_heap_size=16384,--no-code-in-dinit,--no-dinit-in-serial-mem,-Map="${DISTDIR}/${PROJECTNAME}.${IMAGE_TYPE}.map",--cref,--memorysummary,dist/${CND_CONF}/${IMAGE_TYPE}/memoryfile.xml 
 	
 else
-dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}: ${OBJECTFILES}  nbproject/Makefile-${CND_CONF}.mk   
+dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}: ${OBJECTFILES}  nbproject/Makefile-${CND_CONF}.mk   p32MX270F256B.ld bootloader_v01.hex
 	@${MKDIR} dist/${CND_CONF}/${IMAGE_TYPE} 
-	${MP_CC} $(MP_EXTRA_LD_PRE)  -mprocessor=$(MP_PROCESSOR_OPTION)  -o dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${DEBUGGABLE_SUFFIX} ${OBJECTFILES_QUOTED_IF_SPACED}          -DXPRJ_tte=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -Wl,--defsym=__MPLAB_BUILD=1$(MP_EXTRA_LD_POST)$(MP_LINKER_FILE_OPTION),--defsym=_min_heap_size=16384,--no-code-in-dinit,--no-dinit-in-serial-mem,-Map="${DISTDIR}/${PROJECTNAME}.${IMAGE_TYPE}.map",--memorysummary,dist/${CND_CONF}/${IMAGE_TYPE}/memoryfile.xml 
+	${MP_CC} $(MP_EXTRA_LD_PRE)  -mprocessor=$(MP_PROCESSOR_OPTION)  -o dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${DEBUGGABLE_SUFFIX} ${OBJECTFILES_QUOTED_IF_SPACED}          -DXPRJ_tte=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -Wl,--defsym=__MPLAB_BUILD=1$(MP_EXTRA_LD_POST)$(MP_LINKER_FILE_OPTION),--defsym=_min_heap_size=16384,--no-code-in-dinit,--no-dinit-in-serial-mem,-Map="${DISTDIR}/${PROJECTNAME}.${IMAGE_TYPE}.map",--cref,--memorysummary,dist/${CND_CONF}/${IMAGE_TYPE}/memoryfile.xml 
 	${MP_CC_DIR}\\xc32-bin2hex dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${DEBUGGABLE_SUFFIX} 
+	@echo "Creating unified hex file"
+	@"C:/Program Files (x86)/Microchip/MPLABX/v5.30/mplab_platform/platform/../mplab_ide/modules/../../bin/hexmate" --edf="C:/Program Files (x86)/Microchip/MPLABX/v5.30/mplab_platform/platform/../mplab_ide/modules/../../dat/en_msgs.txt" dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.hex bootloader_v01.hex -odist/${CND_CONF}/production/Synth.X.production.unified.hex
+
 endif
 
 

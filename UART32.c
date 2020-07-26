@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <xc.h>
 
+#include "UART32.h"
+
 void UART_init(int baudRate1, int baudRate2){
     U2MODE = 0b1000000000000000;                //UART Module ON, U1RX and U1TX only, Autobaud off, 8bit Data no parity, High Speed mode off
     U2STA = 0b0101010000000000;                 //Tx interrupt when all is transmitted, Rx & Tx enabled, Rx interrupt when buffer is full
@@ -39,21 +41,16 @@ void UART_sendInt(unsigned long data, unsigned newLine){
     if(newLine) UART_sendChar('\r');
 }
 
-void UART_sendHex(unsigned char data, unsigned newLine){
+void UART_sendHex(uint32_t data, unsigned newLine){
     
-    char buffer[5] = {"     "};;
+    char * buffer = malloc(128);
+    if(buffer == 0) UART_sendString("fuck off i don't have enough heap anymore...", 1);
     
-    sprintf(buffer, "%x" ,data);
+    sprintf(buffer, "%x\0" ,data);
     
-    int currPos = 0;
-    int length = 5;
+    UART_sendString("0x", 0); UART_sendString(buffer, newLine);
     
-    for(;currPos < length; currPos ++){
-        UART_sendChar(buffer[currPos]);
-    }
-    
-    if(newLine) UART_sendChar('\n');
-    if(newLine) UART_sendChar('\r');
+    free(buffer);
 }
 
 void UART_sendBin(unsigned long long data, char length, unsigned newLine){

@@ -3,9 +3,9 @@
   <executable name="dist/default/production/Synth.X.production.elf">                 
     <memory name="program">                 
       <units>bytes</units>                 
-      <length>263312</length>                 
-      <used>86816</used>                     
-      <free>176496</free>                     
+      <length>256160</length>                 
+      <used>79060</used>                     
+      <free>177100</free>                     
     </memory>                              
     <memory name="data">              
       <units>bytes</units>                 
