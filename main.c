@@ -96,3 +96,8 @@ void initUSB() {
     USBDeviceInit();
     USBDeviceAttach();
 }
+
+
+void _general_exception_handler ( void ){            //FROM MICROCHIP HARMONY!{
+    while(1);
+}
