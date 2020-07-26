@@ -23,5 +23,10 @@ void UART_sendString(char *data, unsigned newLine);
 void UART_sendInt(unsigned long data, unsigned newLine);
 void UART_sendBin(unsigned long long data, char length, unsigned newLine);
 void UART_sendChar(char data);
+<<<<<<< HEAD
 void UART_sendHex(unsigned char data, unsigned newLine);
 void clearU2Oerr();
+=======
+void UART_sendHex(uint32_t data, unsigned newLine);
+void UART_clearOERR();
+>>>>>>> nightly
