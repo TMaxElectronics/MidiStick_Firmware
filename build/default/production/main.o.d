@@ -11,4 +11,5 @@ usb\ lib/usb_hal_pic32mm.h  \
 usb\ lib/usb_functions.h  \
 MidiController.h  \
 UART32.h  \
- ConfigManager.h 
+ ConfigManager.h  \
+usb\ lib/usb_ch9.h 

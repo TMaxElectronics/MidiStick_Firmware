@@ -3,6 +3,8 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
 
+#include "usb lib/usb_ch9.h"
+
 #define FW_STATE_NORMAL 0xff
 #define FW_STATE_UPDATEREQUEST 0x01     //copy the firmware as normal
 #define FW_STATE_VERIFICATION 0x02      //copy the FW and overwrite settings
@@ -49,6 +51,22 @@ typedef struct{
     char compileTime[20];
 } CFGData;
 
+typedef struct {
+    uint8_t bLength;
+    uint8_t bDscType;
+    uint16_t string[14];
+} USBDevNameHeader;
+
+//this is where the configuration info is saved
+typedef struct {
+    MidiProgramm programm[128]; 
+    CoilConfig coils[32];
+    CFGData cfg;
+    USBDevNameHeader devName;
+} CONF;
+
+extern const volatile CONF ConfigData;
+
 //read and write for programm data
 unsigned NVM_readProgrammConfig(MidiProgramm * dest, uint8_t index);    //reads config from NVM (Non Volatile Memory) to ram
 unsigned NVM_writeProgrammConfig(MidiProgramm * src, uint8_t index);    //writes config to NVM
@@ -69,6 +87,7 @@ void NVM_writeFWUpdate(void* src, uint32_t pageOffset);
 unsigned NVM_writeCFG(CFGData * src);
 
 void NVM_memclr4096(void* start, uint32_t length);
+void NVM_memcpy4(void * dst, void * src, uint32_t length);
 void NVM_memcpy128(void * dst, void * src, uint32_t length);    //Copy over data aligned to 128 byte boundaries (uses the ROW_PROGRAMM operation)
 
 //I got this code from one of my older projects, which got it from another older project :/ Though it looks like it might be from the plib, which I ant to use as little as possible, because of its deprecation
@@ -78,6 +97,7 @@ void NVM_writeRow(void* address, void * data);
 void NVM_writeWord(void* address, unsigned int data);
 void NVM_erasePage(void* address);
 unsigned int __attribute__((nomips16)) NVM_operation(unsigned int nvmop);
+
 uint32_t NVM_getUpdateCRC();
 void NVM_crc(uint8_t data);
 CFGData * NVM_getConfig();
@@ -86,11 +106,8 @@ char * NVM_getFWVersionString();
 char * NVM_getBootloaderVersionString() ;
 uint32_t NVM_getBootloaderVersion();
 void NVM_finishFWUpdate();
-
 void NVM_clearAllCoils();
 void NVM_clearAllProgramms();
-void NVM_memcpy4(void * dst, void * src, uint32_t length);
 uint32_t NVM_getSerialNumber();
-
 char * NVM_getFWCompileDate();
 char * NVM_getFWCompileTime();

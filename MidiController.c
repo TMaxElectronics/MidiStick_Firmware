@@ -13,6 +13,8 @@
 #include "NoteManager.h"
 #include "UART32.h"
 
+
+//per Channel ADSR coefficients and other parameters
 struct{
     float bendFactor;   
     unsigned sustainPedal;
@@ -27,13 +29,9 @@ struct{
     MidiProgramm currProgramm;
 } ChannelInfo[16] = {[0 ... 15].bendFactor = 1, [0 ... 15].attacCoef = 1, [0 ... 15].decayCoef = 1, [0 ... 15].releaseCoef = 1};
 
+//voice parameters and variables
 #define MIDI_VOICECOUNT 4
-
 SynthVoice Midi_voice[MIDI_VOICECOUNT] = {[0 ... 3].currNote = 0xff};
-
-unsigned noteHoldoff = 0;
-
-uint16_t halfLimit = 0;
 
 //Programm and coil configurations
 MidiProgramm * Midi_currOverrideProgramm;
@@ -42,16 +40,6 @@ uint8_t Midi_currCoilIndex = 0xff;          //this is used by the pc software to
 uint16_t Midi_minOnTimeVal = 0;
 uint16_t Midi_maxOnTimeVal = 0;
 
-uint16_t Midi_currRPN = 0xffff;
-
-uint8_t adyn = 0;
-uint8_t bdyn = 0;
-uint8_t cdyn = 0;
-
-unsigned Midi_save = 1;
-
-//TODO make this dynamic
-//uint8_t Midi_currChannel = 0;
 
 //USB comms stuff
 static uint8_t ReceivedDataBuffer[64];          //data received from the midi endpoint
@@ -64,24 +52,27 @@ static USB_HANDLE Midi_configRxHandle;
 //Global midi settings
 unsigned MIDI_programmOverrideEnabled = 0;  //sets wether data from Midi_currOverrideProgramm or Midi_currProgramm is used        
 
+//variables used for the limitation of signal parameters
+unsigned noteHoldoff = 0;
+uint16_t halfLimit = 0;
 int32_t accumulatedOnTime = 0;
 uint16_t resetCounter = 0;
 uint16_t dutyLimiter = 0;
 uint32_t noteOffTime = 1;
 uint16_t holdOff = 0;
 
-//ADSR coefficients
-
 //LED Time variables
-uint16_t currComsLEDTime = 0;
+unsigned Midi_blinkLED = 0;
+uint16_t Midi_blinkScaler = 0;
+uint16_t Midi_currComsLEDTime = 0;
 
 unsigned progMode = 0;
 uint32_t FWUpdate_currPLOffset = 0;
 uint8_t * payload = 0;
 uint16_t currPage = 0;
 
-uint8_t count = 0;
-uint32_t t1 = 0;
+uint16_t Midi_currRPN = 0xffff;
+unsigned Midi_safe = 1;
 
 void Midi_init(){
     
@@ -89,6 +80,16 @@ void Midi_init(){
     //Midi_currProgramm = malloc(sizeof(MidiProgramm));
     Midi_currOverrideProgramm = malloc(sizeof(MidiProgramm));
     Midi_currCoil = malloc(sizeof(CoilConfig));
+    
+    /*
+     * What the hell is a NoteManager supposed to do??
+     * 
+     * Well, I am still experimenting with a proper decision algorithm to select the notes to be played
+     * The notemanager keeps track of all the notes that are supposed to be playing at the moment
+     * 
+     * It is not used right now, so technically I could remove it, but it is a very hand tool to check if midi files exceed the available number of voices, and doesn't really
+     * use too much CPU time, so I'll leave it here until it causes trouble :D
+     */
     NoteManager_init();
     
     //load default values
@@ -97,14 +98,14 @@ void Midi_init(){
     uint8_t currChannel = 0;
     for(;currChannel < 16; currChannel++) NVM_readProgrammConfig(&ChannelInfo[currChannel].currProgramm, 0xff);
     NVM_readCoilConfig(Midi_currCoil, 0xff);
-    //dutyLimiter = (Midi_currCoil->maxDuty * 4000) / 133;
-    holdOff = (Midi_currCoil->holdoffTime * 100) / 133;
-    halfLimit = Midi_currCoil->ontimeLimit / 2;
     
     //calculate required coefficients
     //Midi_setNoteOnTime(Midi_currCoil->minOnTime + ((Midi_currCoil->maxOnTime * Midi_currVolume) / 127), 0);
     Midi_calculateADSR(16);
+    holdOff = (Midi_currCoil->holdoffTime * 100) / 133;
+    halfLimit = Midi_currCoil->ontimeLimit / 2;
     
+    //random s(l)ee(t), used for the noise source
     srand(1337);
     
     //get note timers ready
@@ -119,6 +120,7 @@ void Midi_init(){
     Midi_dataHandle = USBRxOnePacket(USB_DEVICE_AUDIO_MIDI_ENDPOINT,(uint8_t*)&ReceivedDataBuffer,64);
     Midi_configRxHandle = USBRxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT,(uint8_t*)&ConfigReceivedDataBuffer,64);
     
+    //enable the power LED
     Midi_LED(LED_POWER, LED_ON);
 }
 
@@ -196,41 +198,25 @@ void Midi_SOFHandler(){
         }
     }
     
+    //turn on the duty limiter indicator, if it is on
     Midi_LED(LED_DUTY_LIMITER, (accumulatedOnTime < halfLimit) ? LED_OFF : LED_ON);
     
-    if(count++ > cdyn){
-        if(ChannelInfo[9].bendFactor > 0.01){
-            ChannelInfo[9].bendFactor -= 0.01;
-            uint8_t currVoice = 0;
-            for(;currVoice < MIDI_VOICECOUNT; currVoice++){
-                if(Midi_voice[currVoice].currNote != 0xff && Midi_voice[currVoice].currNoteOrigin == 9){ 
-                    if(ChannelInfo[9].bendFactor < 0.1) {
-                        Midi_voice[currVoice].currNote = 0xff;
-                        Midi_voice[currVoice].lastReqNoteOT = Midi_voice[currVoice].currReqNoteOT;
-                        Midi_voice[currVoice].currReqNoteOT = 0;
-                    }else{
-                        int16_t currNote = Midi_voice[currVoice].currNote + (int8_t) (MIDI_programmOverrideEnabled ? Midi_currOverrideProgramm->noteOffset : ChannelInfo[9].currProgramm.noteOffset);
-                        uint16_t nextNoteFreq = (uint16_t) ((float) Midi_NoteFreq[currNote] * ChannelInfo[Midi_voice[currVoice].currNoteOrigin].bendFactor);
-                        Midi_setNoteTPR(currVoice, nextNoteFreq); 
-                    }
-                }
-            }
-        }
-        count = 0;
-    }
     
-    //if(++resetCounter > 4){
-        //resetCounter = 0;
-    //}
-    //if(T1CON & _T1CON_ON_MASK) UART_sendString((LATB & _LATB_LATB15_MASK) ? "output on" : "holdoff active", 1);
-    //Turn the LED on if any voices are active
+    //Turn the note on LED on if any voices are active, and the E_STOP is closed (or disabled)
     Midi_LED(LED_OUT_ON, anyNoteOn & NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK));
     
-    //count down comms led on time, to make it turn off if no data was received for 100ms
-    if(currComsLEDTime > 0){
-        currComsLEDTime --;
-        if(currComsLEDTime == 0){
+    //count down comms led on time, to make it turn off if no data was received for a while
+    if(Midi_currComsLEDTime > 0){
+        Midi_currComsLEDTime --;
+        if(Midi_currComsLEDTime == 0){
             Midi_LED(LED_DATA, LED_OFF);
+        }
+    }
+    
+    if(Midi_blinkLED){
+        if(++Midi_blinkScaler > 500){
+            LATBINV = _LATB_LATB8_MASK;
+            Midi_blinkScaler = 0;
         }
     }
 }
@@ -243,26 +229,23 @@ void Midi_run(){
         return;
     }
     
+    //a new Midi data packet was received
     if(!USBHandleBusy(Midi_dataHandle)){
-        //a new data packet was received
-        //if(((ReceivedDataBuffer[1] & 0xf) ^ Midi_currChannel) == 0 && (ReceivedDataBuffer[0] & 0xf0) == 0){    //our channel is addressed and the correct cable is selected
         if(!progMode){
             Midi_LED(LED_DATA, LED_BLINK);
-            currComsLEDTime = 100;
-            Midi_save = 0;
+            Midi_currComsLEDTime = 100;
+            
+            //prevent config data form being written, as it causes audio glitches
+            Midi_safe = 0;
 
             uint8_t channel = ReceivedDataBuffer[1] & 0xf;
             uint8_t cmd = ReceivedDataBuffer[1] & 0xf0;
-            
-            //UART_sendHex(ReceivedDataBuffer[1], 1);
-            //if(ReceivedDataBuffer[1] == MIDI_CLK){
-                //"clk", 1);
-            //}
 
             if(cmd == MIDI_CMD_NOTE_OFF){
-                //UART_sendString("noteOff", 1);
+                //remove the note from the list
                 NoteManager_removeNote(ReceivedDataBuffer[2]);
-
+                
+                //step through all voices and check if the note that was just switched off is playing on any, if it is and the channel matches, we switch it off
                 uint8_t currVoice = 0;
                 for(;currVoice < MIDI_VOICECOUNT; currVoice++){
                     if(Midi_voice[currVoice].currNote == ReceivedDataBuffer[2] && Midi_voice[currVoice].currNoteOrigin == channel){
@@ -272,13 +255,15 @@ void Midi_run(){
                     }
                 }
             }else if(cmd == MIDI_CMD_NOTE_ON){
-                //UART_sendString("noteOn ", 0);
+                
                 if(ReceivedDataBuffer[3] > 0){  //velocity is > 0 -> turn note on
-                    //UART_sendString(" On", 1);
+                    //add note to the list with its velocity
                     NoteManager_addNote(ReceivedDataBuffer[2], ReceivedDataBuffer[3]);
+                    
                     //decide which voice should play the new note
                     uint8_t currVoice = 0;
                     unsigned skip = 0;
+                    //if a voice is already playing the note, we can skip it. But we do need to reset its adsr
                     for(;currVoice < MIDI_VOICECOUNT; currVoice++){
                         if(Midi_voice[currVoice].currNote == ReceivedDataBuffer[2] && Midi_voice[currVoice].currNoteOrigin == channel){
                             Midi_setNote(currVoice, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
@@ -286,10 +271,12 @@ void Midi_run(){
                             break;
                         }
                     }
+                    
+                    //if we need to use a new voice, use the first off one we find. If there are none, we overwrite the oldest note
                     if(!skip){
-                        if(Midi_voice[0].currReqNoteOT == NOTE_OFF){         //note is decaying, so overwrite it
+                        if(Midi_voice[0].currReqNoteOT == NOTE_OFF){
                             Midi_setNote(0, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                        }else if(Midi_voice[1].currReqNoteOT == NOTE_OFF){         //note is decaying, so overwrite it   
+                        }else if(Midi_voice[1].currReqNoteOT == NOTE_OFF){ 
                             Midi_setNote(1, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
                         }else if(Midi_voice[2].currReqNoteOT == NOTE_OFF){          
                             Midi_setNote(2, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
@@ -306,10 +293,8 @@ void Midi_run(){
                         }
                     }
                     
-                    ChannelInfo[9].bendFactor = 1;
 
                 }else{  //velocity is == 0 -> turn note off (some software uses this instead of the note off command)
-                    //UART_sendString("off", 1);
                     NoteManager_removeNote(ReceivedDataBuffer[2]);
                     uint8_t currVoice = 0;
                     for(;currVoice < MIDI_VOICECOUNT; currVoice++){
@@ -325,6 +310,7 @@ void Midi_run(){
                 if(ReceivedDataBuffer[2] == MIDI_CC_ALL_SOUND_OFF || ReceivedDataBuffer[2] == MIDI_CC_ALL_NOTES_OFF || ReceivedDataBuffer[2] == MIDI_CC_RESET_ALL_CONTROLLERS){ //Midi panic, and sometimes used by programms when you press the "stop" button
                     NoteManager_clearList();
 
+                    //step through all voices and switch them off
                     uint8_t currVoice = 0;
                     for(;currVoice < MIDI_VOICECOUNT; currVoice++){
                         Midi_voice[currVoice].currNote = 0xff;
@@ -333,61 +319,62 @@ void Midi_run(){
                         Midi_voice[currVoice].currReqNoteOT = 0;
                     }
 
+                    //stop the timers
                     T2CONCLR = _T2CON_ON_MASK;
                     T3CONCLR = _T3CON_ON_MASK;
                     T4CONCLR = _T4CON_ON_MASK;
                     T5CONCLR = _T5CON_ON_MASK;
-
+                    
+                    //reset all bend factors
                     uint8_t currChannel = 0;
                     for(;currChannel < 16; currChannel++){
                         ChannelInfo[currChannel].bendFactor = 1;
                     }
-                    Midi_save = 1;
+                    
+                    //enable NVM operations again
+                    Midi_safe = 1;
+                    
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_VOLUME){
-                    UART_sendString("vol", 1);
                     ChannelInfo[channel].currVolume = ReceivedDataBuffer[3];
                     Midi_setNoteOnTime(Midi_currCoil->minOnTime + ((Midi_currCoil->maxOnTime * ChannelInfo[channel].currVolume) / 127), channel);
-                }else if(ReceivedDataBuffer[2] == 0x1){
-                    adyn = ReceivedDataBuffer[3];
-                }else if(ReceivedDataBuffer[2] == 0x2){
-                    bdyn = ReceivedDataBuffer[3];
-                }else if(ReceivedDataBuffer[2] == 0x4){
-                    cdyn = ReceivedDataBuffer[3];
-                }else if(ReceivedDataBuffer[2] == MIDI_CC_RPN_LSB){
+                    
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_RPN_LSB){             //we are getting the address for the next RPN, remember it until the data comes in
                     Midi_currRPN &= 0xff00;
                     Midi_currRPN |= ReceivedDataBuffer[3];
+                    
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_RPN_MSB){
                     Midi_currRPN &= 0x00ff;
                     Midi_currRPN |= ReceivedDataBuffer[3] << 8;
-                }else if(ReceivedDataBuffer[2] == MIDI_CC_DATA_FINE){
+                    
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_DATA_FINE){           //RPN data -> check the address we received before, to select which parameter to change
                     if(Midi_currRPN == MIDI_RPN_BENDRANGE){     //get the 100ths semitones for the bendrange
                         ChannelInfo[channel].bendLSB = ReceivedDataBuffer[3];
                         ChannelInfo[channel].currProgramm.bendRange = (float) ChannelInfo[channel].bendMSB + (float) ChannelInfo[channel].bendLSB / 100.0;
-                        UART_sendString("newBend low ", 0); UART_sendInt(ChannelInfo[channel].bendLSB, 0); UART_sendString(" = ", 0); UART_sendInt((uint16_t) (ChannelInfo[channel].currProgramm.bendRange * 100.0), 1);
                     }
-                }else if(ReceivedDataBuffer[2] == MIDI_CC_DATA_COARSE){
+                    
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_DATA_COARSE){         //RPN data -> check the address we received before, to select which parameter to change
                     if(Midi_currRPN == MIDI_RPN_BENDRANGE){     //get the full semitones for the bendrange
                         ChannelInfo[channel].bendMSB = ReceivedDataBuffer[3];
                         ChannelInfo[channel].currProgramm.bendRange = (float) ChannelInfo[channel].bendMSB + (float) ChannelInfo[channel].bendLSB / 100.0;
-                        UART_sendString("newBend high ", 0); UART_sendInt(ChannelInfo[channel].bendMSB, 0); UART_sendString(" = ", 0); UART_sendInt((uint16_t) (ChannelInfo[channel].currProgramm.bendRange * 100.0), 1);
                     }
-                }else if(ReceivedDataBuffer[2] == MIDI_CC_NRPN_LSB || ReceivedDataBuffer[2] == MIDI_CC_NRPN_MSB){
+                    
+                }else if(ReceivedDataBuffer[2] == MIDI_CC_NRPN_LSB || ReceivedDataBuffer[2] == MIDI_CC_NRPN_MSB){   //we don't currently support any NRPNs, but we need to make sure, that we don't confuse the data sent for them as being a RPN, so reset the current RPN address
                     Midi_currRPN = 0xffff;
+                    
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_SUSTAIN_PEDAL){
                     ChannelInfo[channel].sustainPedal = ReceivedDataBuffer[3] > 63;
-                    UART_sendString(ChannelInfo[channel].sustainPedal ? "sustain turned on" : "sustain turned off", 1);
+                    
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_DAMPER_PEDAL){
                     ChannelInfo[channel].damperPedal = ReceivedDataBuffer[3] > 63;
-                    UART_sendString(ChannelInfo[channel].damperPedal ? "damper turned on" : "damper turned off", 1);
                 }
 
 
             }else if(cmd == MIDI_CMD_PITCH_BEND){
-                //UART_sendString("bend", 1);
-                //calculate the current bend factor as 2^(bend_range * requested_bend)
-                double bendOffset = (double) (((ReceivedDataBuffer[3] << 7) | ReceivedDataBuffer[2]) - 8192) / 8192.0;
+                //calculate the factor, by which we will bend the note
+                float bendOffset = (float) (((ReceivedDataBuffer[3] << 7) | ReceivedDataBuffer[2]) - 8192) / 8192.0;
                 ChannelInfo[channel].bendFactor = powf(2, (bendOffset * (float) (MIDI_programmOverrideEnabled ? Midi_currOverrideProgramm->bendRange : ChannelInfo[channel].currProgramm.bendRange)) / 12.0);
 
+                //apply the new bending to all voices, that are playing a not from the current channel
                 uint8_t currVoice = 0;
                 for(;currVoice < MIDI_VOICECOUNT; currVoice++){
                     if(Midi_voice[currVoice].currNote != 0xff){ 
@@ -396,7 +383,9 @@ void Midi_run(){
                         Midi_setNoteTPR(currVoice, nextNoteFreq); 
                     }
                 }
+                
             }else if(cmd == MIDI_CMD_PROGRAM_CHANGE){
+                //load the program from NVM
                 NVM_readProgrammConfig(&ChannelInfo[channel].currProgramm, ReceivedDataBuffer[2]);
                 Midi_calculateADSR(channel);   //recalculate coefficients
             }
@@ -411,10 +400,12 @@ void Midi_run(){
         if(!progMode){
             //New data is available at the configuration endpoint
             //TODO create structs for the data packets, so we don't have to do this ugly stuff
+            //yeah this is still a TODO...
+            
             if(ConfigReceivedDataBuffer[0] == USB_CMD_LIVE_PREV){
-                //LATBbits.LATB8 = ConfigReceivedDataBuffer[1];
                 MIDI_programmOverrideEnabled = ConfigReceivedDataBuffer[1];
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_ADSR_PREV){
+                
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_ADSR_PREV){     //sets the ADST parameters for the live preview
                 Midi_currOverrideProgramm->noteOffset = ConfigReceivedDataBuffer[1];
                 Midi_currOverrideProgramm->bendRange = (float) ConfigReceivedDataBuffer[2];
                 Midi_currOverrideProgramm->AttacTime = (ConfigReceivedDataBuffer[6] << 24) | (ConfigReceivedDataBuffer[5] << 16) | (ConfigReceivedDataBuffer[4] << 8) | ConfigReceivedDataBuffer[3];
@@ -422,11 +413,12 @@ void Midi_run(){
                 Midi_currOverrideProgramm->releaseTime = (ConfigReceivedDataBuffer[14] << 24) | (ConfigReceivedDataBuffer[13] << 16) | (ConfigReceivedDataBuffer[12] << 8) | ConfigReceivedDataBuffer[11];   //TODO change to release
                 Midi_currOverrideProgramm->sustainPower = ConfigReceivedDataBuffer[15];
                 Midi_currOverrideProgramm->sustainEnabled = ConfigReceivedDataBuffer[16];
+                Midi_calculateADSR(16);   //recalculate ADSR coefficients
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_PROGRAMM){
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_PROGRAMM){      //reads programm parameters
                 memset(ToSendDataBuffer, 0, 64);
                 MidiProgramm requested;
-                if(NVM_readProgrammConfig(&requested, ConfigReceivedDataBuffer[1])){    //returns zero if voice is not from flash
+                if(NVM_readProgrammConfig(&requested, ConfigReceivedDataBuffer[1])){    //returns zero if the configuration at the provided index is not valid (empty)
                     ToSendDataBuffer[0] = 0x20;
                     ToSendDataBuffer[1] = ConfigReceivedDataBuffer[1];
                     ToSendDataBuffer[2] = requested.noteOffset;
@@ -443,15 +435,15 @@ void Midi_run(){
                     ToSendDataBuffer[14] = (requested.releaseTime >> 16);
                     ToSendDataBuffer[13] = (requested.releaseTime >> 8);
                     ToSendDataBuffer[12] = (requested.releaseTime);
-                    ToSendDataBuffer[16] = requested.sustainPower;   //sustain level
-                    ToSendDataBuffer[17] = requested.sustainEnabled;   //sustain level
+                    ToSendDataBuffer[16] = requested.sustainPower;
+                    ToSendDataBuffer[17] = requested.sustainEnabled;
                     memcpy(&ToSendDataBuffer[32], requested.name, 24);
                 }
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_PROGRAMM){
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_PROGRAMM){      //write new program data
                 MidiProgramm * newData = malloc(sizeof(MidiProgramm));
-
+                    //TODO: load new data into ram if the programm is currently in use
                 newData->noteOffset = ConfigReceivedDataBuffer[2];
                 newData->bendRange = (double) ConfigReceivedDataBuffer[3];
                 newData->AttacTime = (ConfigReceivedDataBuffer[7] << 24) | (ConfigReceivedDataBuffer[6] << 16) | (ConfigReceivedDataBuffer[5] << 8) | ConfigReceivedDataBuffer[4];
@@ -465,10 +457,10 @@ void Midi_run(){
 
                 free(newData);
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_COIL_CONFIG){
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_COIL_CONFIG){   //read coil configurations
                 memset(ToSendDataBuffer, 0, 64);
                 CoilConfig requested;
-                if(NVM_readCoilConfig(&requested, ConfigReceivedDataBuffer[1])){    //returns zero if voice is not from flash
+                if(NVM_readCoilConfig(&requested, ConfigReceivedDataBuffer[1])){    //returns zero if config at index is invalid
                     ToSendDataBuffer[0] = 0x22;
                     ToSendDataBuffer[1] = ConfigReceivedDataBuffer[1];
                     ToSendDataBuffer[5] = (requested.maxOnTime >> 24);
@@ -488,7 +480,7 @@ void Midi_run(){
                 }
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_COIL_CONFIG){
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_COIL_CONFIG){   //write coil configuration data
                 CoilConfig * newData = malloc(sizeof(CoilConfig));
 
                 newData->maxOnTime = (ConfigReceivedDataBuffer[5] << 24) | (ConfigReceivedDataBuffer[4] << 16) | (ConfigReceivedDataBuffer[3] << 8) | ConfigReceivedDataBuffer[2];
@@ -501,70 +493,75 @@ void Midi_run(){
 
                 free(newData);
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_DEVCFG){
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_DEVCFG){        //read device configuration parameters
                 ToSendDataBuffer[0] = USB_CMD_GET_DEVCFG;
                 
                 memcpy(&ToSendDataBuffer[1], NVM_getConfig(), sizeof(CFGData));
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_DEVCFG){
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_DEVCFG){        //write device configuration parameters
                 CFGData * newData = malloc(sizeof(CFGData));
                 memcpy(newData, &ConfigReceivedDataBuffer[1], sizeof(CFGData));
-                UART_sendString("write new devcfg: ", 0); UART_sendString(newData->name, 0); UART_sendString(" ", 0); UART_sendInt(newData->ledMode1, 0); 
                 NVM_writeCFG(newData);
                 free(newData);
-                Midi_LED(LED_POWER, LED_ON);
+                Midi_LED(LED_POWER, LED_ON);    //turn on the power LED again, as it might be a different one from before
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_COILCONFIG_INDEX){
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_COILCONFIG_INDEX){  //read which coil preset is in use
                 ToSendDataBuffer[0] = USB_CMD_GET_COILCONFIG_INDEX;
                 ToSendDataBuffer[1] = NVM_isCoilConfigValid(Midi_currCoilIndex) ? Midi_currCoilIndex : 0xff;
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_COILCONFIG_INDEX){
-                if(Midi_save){  //currently redundant
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_COILCONFIG_INDEX){  //set which coil preset is in use
+                if(Midi_safe){  //only allow for changing the coil if we are not playing any music
                     Midi_currCoilIndex = ConfigReceivedDataBuffer[1];
                     NVM_readCoilConfig(Midi_currCoil, Midi_currCoilIndex);
                     halfLimit = Midi_currCoil->ontimeLimit / 2;
                     holdOff = (Midi_currCoil->holdoffTime * 100) / 133;
                     uint8_t currChannel = 0;
-                    for(;currChannel < 16; currChannel++){
+                    for(;currChannel < 16; currChannel++){                      //update the on time values, incase we have a different min/max from before
                         Midi_setNoteOnTime(Midi_currCoil->minOnTime + ((Midi_currCoil->maxOnTime * ChannelInfo[currChannel].currVolume) / 127), currChannel);
                     }
                     ToSendDataBuffer[0] = USB_CMD_SET_COILCONFIG_INDEX;
                     ToSendDataBuffer[1] = NVM_isCoilConfigValid(Midi_currCoilIndex) ? Midi_currCoilIndex : 0xff;
-                    UART_sendString("changed CCI", 1);
                 }else{
                     ToSendDataBuffer[0] = USB_CMD_SET_COILCONFIG_INDEX;
                     ToSendDataBuffer[1] = USB_CMD_COILCONFIG_NOT_CHANGED;
-                    UART_sendString("did not change CCI", 1);
                 }
+                
+                //return either the new coil configuration index, or an error flag if we didn't change it, so the software can inform the user
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_GET_CURR_NOTES){
+            }else if(ConfigReceivedDataBuffer[0] == USB_GET_CURR_NOTES){        //dump all notes from the noteManager
                 memset(ToSendDataBuffer, 0, 64);
                 NoteManager_dumpNotes(ToSendDataBuffer);
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_ENTER_PROGMODE){
-                if(!Midi_isNotePlaing()){
+                
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_ENTER_PROGMODE){    //enter firmware update mode. In this mode only FWUPDATE commands will be processed, and any form of midi data ignored
+                if(Midi_safe){
                     progMode = 1;
                 }
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_CLEAR_ALL_PROGRAMMS){
+                
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_CLEAR_ALL_PROGRAMMS){   //batch erase of all program presets, used for bulk writing to limit the overall re-write count
                 NVM_clearAllProgramms();
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_CLEAR_ALL_COILS){
+                
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_CLEAR_ALL_COILS){   //batch erase of all coil configurations, used for bulk writing to limit the overall re-write count
                 NVM_clearAllCoils();
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_FWVERSION){
+                
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_FWVERSION){     //read the firmware version string
                 memset(ToSendDataBuffer, 0, 64);
                 memcpy(&ToSendDataBuffer[1], NVM_getFWVersionString(), 24);
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_BLVERSION){
+                
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_BLVERSION){     //read the bootloader version string
                 memset(ToSendDataBuffer, 0, 64);
                 char * blVer = NVM_getBootloaderVersionString();
                 memcpy(&ToSendDataBuffer[1], blVer, 24);
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
                 free(blVer);
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_SERIAL_NR){
+                
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_SERIAL_NR){     //read the devices serial number. this is stored in the boot flash, and will not be changed when updating the firmware
                 ToSendDataBuffer[0] = USB_CMD_GET_SERIAL_NR;
                 uint32_t sn = NVM_getSerialNumber();
                 ToSendDataBuffer[4] = (sn >> 24);
@@ -573,58 +570,65 @@ void Midi_run(){
                 ToSendDataBuffer[1] = (sn);
                 
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_BLINK){
+                //we are supposed to blink an led to indentify us
+                Midi_blinkLED = ConfigReceivedDataBuffer[1];
+                if(!Midi_blinkLED) LATBSET =_LATB_LATB8_MASK;
             }else if(ConfigReceivedDataBuffer[0] == USB_CMD_PING){
-                //the software checked the connection... Do nothing
+                //called by the software every 250ms to check for device presence... no response or action required
             }
 
-            Midi_calculateADSR(16);   //recalculate ADSR coefficients, as it is likely some changed
         }else{
             if(payload != 0){ //we are in the process of receiving data packets for a firmware update
-                memcpy(payload + FWUpdate_currPLOffset, ConfigReceivedDataBuffer, 64);
+                memcpy(payload + FWUpdate_currPLOffset, ConfigReceivedDataBuffer, 64);  //copy the data into the buffer at the correct location and increase the offset
                 FWUpdate_currPLOffset += 64;
-                if(FWUpdate_currPLOffset >= PAGE_SIZE){
-                    //UART_sendString("write packet to NVM ; page = ", 0); UART_sendInt(currPage, 0);
-                    uint32_t startTime = _CP0_GET_COUNT();
+                
+                if(FWUpdate_currPLOffset >= PAGE_SIZE){ //we have received one page of data -> write it to the NVM at the offset given by the packetcount * packet Size
                     NVM_writeFWUpdate(payload, currPage);
-                    uint32_t duration = (_CP0_GET_COUNT() - startTime) / 24;
-                    //UART_sendString(" time (us) = ", 0); UART_sendInt(duration, 0);
                     free(payload);
+                    
+                    //return to normal parsing of packets
                     payload = 0;
                     FWUpdate_currPLOffset = 0;
-                    Midi_LED(LED_POWER, LED_OFF);
-                    //UART_sendString(" ; Done!", 1);
                     
+                    //inform the software that we are ready for another packet, this is necessary as flash write speed is slow and not consistent enough to just use a wait in the software after writing one packet
                     ToSendDataBuffer[0] = USB_CMD_FWUPDATE_BULK_WRITE_FINISHED;
                     Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64); 
-                }//else{UART_sendString("new Packet received ; Nr. ", 0); UART_sendInt(FWUpdate_currPLOffset, 1); }
+                }
             }else{
-                if(ConfigReceivedDataBuffer[0] == USB_CMD_EXIT_PROGMODE){
+                
+                if(ConfigReceivedDataBuffer[0] == USB_CMD_EXIT_PROGMODE){       //go back to normal operation
                     progMode = 0;
-                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_ERASE){
+                    
+                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_ERASE){//erase any possible previous firmware updates
                     NVM_eraseFWUpdate();
                     memset(ToSendDataBuffer, 0, 64);
-                    ToSendDataBuffer[0] = USB_CMD_FWUPDATE_ERASE;
+                    //inform the software that the erase operation is complete, this is necessary as flash erase speed is relatively slow and not consistent enough to just use a wait in the software after writing one packet
+                     ToSendDataBuffer[0] = USB_CMD_FWUPDATE_ERASE;
                     Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
-                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_COMMIT){
+                    
+                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_COMMIT){   //write the appropriate value to the fwStatus byte, to tell the bootloader we mean business ;)
                     NVM_commitFWUpdate(ConfigReceivedDataBuffer[1]);
-                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_REBOOT){
+                    Midi_blinkLED = 1;
+                    
+                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_REBOOT){   //to a software reset
                     __pic32_software_reset();
-                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_GET_CRC){
+                    
+                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_GET_CRC){  //calculate the CRC of the update firmware in flash
                     uint32_t crc = NVM_getUpdateCRC();
                     ToSendDataBuffer[0] = USB_CMD_FWUPDATE_GET_CRC;
                     ToSendDataBuffer[1] = (crc >> 24);
                     ToSendDataBuffer[2] = (crc >> 16);
                     ToSendDataBuffer[3] = (crc >> 8);
                     ToSendDataBuffer[4] = (crc);
-                    UART_sendString("calculated crc: ", 0); UART_sendHex(crc, 1);
                     Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
-                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_START_BULK_WRITE){
-                    Midi_LED(LED_POWER, LED_ON);
+                    
+                }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_START_BULK_WRITE){ //prepare to receive civil judgment, wait no we prepare to receive packet data
                     payload = malloc(PAGE_SIZE);
                     FWUpdate_currPLOffset = 0;
                     currPage = (ConfigReceivedDataBuffer[1] << 8) | (ConfigReceivedDataBuffer[2]);
                     
-                    memset(ToSendDataBuffer, 0, 64);                    //return the size of the page to be written
+                    memset(ToSendDataBuffer, 0, 64);                            //return the size of the page to be written
                     ToSendDataBuffer[0] = USB_CMD_FWUPDATE_COMMIT;
                     ToSendDataBuffer[1] = PAGE_SIZE >> 8;
                     ToSendDataBuffer[2] = PAGE_SIZE;
@@ -633,6 +637,7 @@ void Midi_run(){
             }
         }
         
+        //get ready to receive more data
         Midi_configRxHandle = USBRxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT,(uint8_t*)&ConfigReceivedDataBuffer,64);
     }
 }
@@ -643,7 +648,6 @@ void Midi_setNote(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel
     uint16_t currNoteFreq = (uint16_t) ((double) Midi_NoteFreq[currNote] * ChannelInfo[channel].bendFactor);    //get the required note frequency, including any bender offset
     
     Midi_voice[voice].currNoteOrigin = channel;
-    //if((Midi_getNoteOnTime() * currNoteFreq) / 10000 > Midi_currCoil->maxDuty) return;  //don't change the note if the duty cycle would be > maxDuty. Duty = onTime * frequency / ({time units coefficient, here uS -> 10^6} / 100)
     
     Midi_setNoteTPR(voice, currNoteFreq);
     Midi_voice[voice].noteAge = 0;
@@ -651,7 +655,6 @@ void Midi_setNote(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel
     Midi_voice[voice].adsrState = NOTE_OFF;    //reset the ADSR state to note off, so attac will work, even if the note was still on
     Midi_voice[voice].currReqNoteOT = (((ChannelInfo[Midi_voice[voice].currNoteOrigin].currOT * velocity * (ChannelInfo[channel].damperPedal ? 6 : 10)) / 1270)) - Midi_minOnTimeVal;      //currReqNoteOT dictates the on time, added to the minimum setting
     
-    //UART_sendString("OT: ", 0); UART_sendInt(Midi_voice[voice].currReqNoteOT, 1);
     //TODO implement velocity based ADSR
 }
 
@@ -682,7 +685,8 @@ void Midi_calculateADSR(uint8_t channel){
         
         if(channel <= 15) break;
     }
-
+    
+    //transform on times, to match the actual timer frequency
     Midi_maxOnTimeVal = (Midi_currCoil->maxOnTime * 100) / 133;
     Midi_minOnTimeVal = (Midi_currCoil->minOnTime * 100) / 133;
 }
@@ -728,8 +732,8 @@ void Midi_initTimers(){
 }
 
 void Midi_setNoteTPR(uint8_t voice, uint16_t freq){
-    if(freq < 10) return;
     uint32_t divVal = 187500 / freq;
+    //turn off the timer if the frequency is too low, otherwise set the scaler register to the appropriate value
     switch(voice){
         case 0:
             if(freq == 0){
@@ -738,8 +742,7 @@ void Midi_setNoteTPR(uint8_t voice, uint16_t freq){
             }else{
                 T2CONSET = _T2CON_ON_MASK;
             }
-            PR2 = divVal & 0xffff;    //lower 16 bits of the divider are done in hardware
-            t1 = PR2;
+            PR2 = divVal & 0xffff;
             if(TMR2 > PR2) TMR2 = 0;
             break;
         case 1:
@@ -749,7 +752,7 @@ void Midi_setNoteTPR(uint8_t voice, uint16_t freq){
             }else{
                 T3CONSET = _T3CON_ON_MASK;
             }
-            PR3 = divVal & 0xffff;    //lower 16 bits of the divider are done in hardware
+            PR3 = divVal & 0xffff;
             if(TMR3 > PR3) TMR3 = 0;
             break;
         case 2:
@@ -759,7 +762,7 @@ void Midi_setNoteTPR(uint8_t voice, uint16_t freq){
             }else{
                 T4CONSET = _T4CON_ON_MASK;
             }
-            PR4 = divVal & 0xffff;    //lower 16 bits of the divider are done in hardware
+            PR4 = divVal & 0xffff;
             if(TMR4 > PR4) TMR4 = 0;
             break;
         case 3:
@@ -769,7 +772,7 @@ void Midi_setNoteTPR(uint8_t voice, uint16_t freq){
             }else{
                 T5CONSET = _T5CON_ON_MASK;
             }
-            PR5 = divVal & 0xffff;    //lower 16 bits of the divider are done in hardware
+            PR5 = divVal & 0xffff;
             if(TMR5 > PR5) TMR5 = 0;
             break;
     }
@@ -780,11 +783,6 @@ void Midi_setNoteOnTime(uint16_t onTimeUs, uint8_t ch){
     //Convert the requested time in us, to a timer divider value
     ChannelInfo[ch].currOT = (onTimeUs * 100) / 133;
 }
-
-/*uint16_t Midi_getNoteOnTime(){
-    //Convert the timer divider value, to the time in us
-    return (Midi_channelOTs[Midi_voice[voice].currNoteOrigin] * 133) / 100;
-}*/
 
 /*
  * How the notes are played:
@@ -799,9 +797,6 @@ unsigned dir = 0;
 
 void __ISR(_TIMER_2_VECTOR) Midi_note1ISR(){
     IFS0CLR = _IFS0_T2IF_MASK;
-    /*if(adyn != 0 && bdyn != 0) PR2 = t1 + offset;//rand() / (RAND_MAX / (adyn * 5)) + (t1 / bdyn);
-    offset += dir ? adyn : -adyn;
-    if(offset > bdyn || offset < -bdyn) dir != dir;*/
     Midi_timerHandler(0);
 }
 
@@ -848,12 +843,15 @@ void __ISR(_TIMER_1_VECTOR) Midi_noteOffISR(){
 }
 
 inline void Midi_timerHandler(uint8_t voice){
-    if(Midi_voice[voice].currNoteOT == 0) return;
     IEC0CLR = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK;
+    if(Midi_voice[voice].currNoteOT == 0) return;
+    
+    //scale down the on time as we approach the set maximum (including the on time that will be added by the current note)
     uint16_t newLimitTime = accumulatedOnTime + Midi_voice[voice].currNoteOT;
     int16_t nextOnTime = Midi_voice[voice].currNoteOT - ((Midi_voice[voice].currNoteOT * ((newLimitTime > halfLimit) ? (newLimitTime - halfLimit) : 0)) / halfLimit);
     
-    if(noteOffTime != 0){    //Note is already on
+    if(noteOffTime != 0){
+        //count down the accumulator by the off time
         accumulatedOnTime -= ((_CP0_GET_COUNT() - noteOffTime) * Midi_currCoil->maxDuty) / 3200;
         if(accumulatedOnTime < 0) accumulatedOnTime = 0;
         accumulatedOnTime += nextOnTime;
@@ -861,20 +859,30 @@ inline void Midi_timerHandler(uint8_t voice){
         noteOffTime = 0;
     }
     
+    //start the on-time timer
     T1CONSET = _T1CON_ON_MASK;
-    //if(accumulatedOnTime > dutyLimiter) return;
-    if(nextOnTime <= 0) return;
+    
+    //if out new on time is too small ignore it
+    if(nextOnTime <= 0){
+        PR1 = 5;   //wait a bit until firing the off-interrupt, even if no on time is desired
+        return;
+    }
     PR1 = nextOnTime;
+    
+    //switch on the output if the E-STOP is clear, or not enabled. Switch on the secondary output if aux out is desired
     if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = _LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0);  //RB15
 
+    //make sure the timer is not past its rollover point, now that we have changed the period. It would run for 65536 - delta(TMR1,PR1) clock cycles otherwise
     if(TMR1 > PR1-10) TMR1 = PR1-10;
 }
 
+
+//"HAL" for the leds, takes the settings for led usage into account
 void Midi_LED(uint8_t type, uint8_t state){
     if(NVM_getConfig()->ledMode1 == type) {   //blue
         if(state == LED_ON) LATBCLR = _LATB_LATB9_MASK; else if(state == LED_OFF) LATBSET = _LATB_LATB9_MASK; else if(state == LED_BLINK) LATBINV = _LATB_LATB9_MASK; //blink coms led
     }
-    if(NVM_getConfig()->ledMode2 == type) {   //white
+    if(NVM_getConfig()->ledMode2 == type && ! Midi_blinkLED) {   //white
         if(state == LED_ON) LATBCLR = _LATB_LATB8_MASK; else if(state == LED_OFF) LATBSET = _LATB_LATB8_MASK; else if(state == LED_BLINK) LATBINV = _LATB_LATB8_MASK; //blink coms led
     }
     if(NVM_getConfig()->ledMode3 == type) {   //green

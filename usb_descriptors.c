@@ -4,6 +4,7 @@
 
 #include "usb lib/usb.h"
 #include "usb lib/usb_device_hid.h"
+#include "ConfigManager.h"
 
 /* Device Descriptor */
 const USB_DEVICE_DESCRIPTOR device_dsc=
@@ -152,15 +153,6 @@ sizeof(sd001),USB_DESCRIPTOR_STRING,
 'r','o','n','i','c','s',' ','I','n','c','.'
 }};
 
-//Product string descriptor
-const struct{uint8_t bLength;uint8_t bDscType;uint16_t string[14];}sd002={
-sizeof(sd002),USB_DESCRIPTOR_STRING,
-{'M','i','d','i','S','t','i','c','k',' ',' ',
-' ',' ',' '
-}}; 
-  
-
-
 //Array of configuration descriptors
 const uint8_t *const USB_CD_Ptr[]=
 {
@@ -172,7 +164,7 @@ const uint8_t *const USB_SD_Ptr[]=
 {
     (const uint8_t *const)&sd000,
     (const uint8_t *const)&sd001,
-    (const uint8_t *const)&sd002
+    (const uint8_t *const)&ConfigData.devName
 };
 
 //Class specific descriptor - HID 

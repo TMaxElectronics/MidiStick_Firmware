@@ -9,5 +9,6 @@ usb\ lib/usb_hal.h  \
  usb\ lib/usb_hal_pic32mm.h  \
 MidiController.h  \
 ConfigManager.h  \
- NoteManager.h  \
+ usb\ lib/usb_ch9.h  \
+NoteManager.h  \
 UART32.h 

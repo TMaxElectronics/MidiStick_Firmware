@@ -59,20 +59,22 @@ void initUSB();
  */
 
 void main(void) {
+    //set flash timings to the optimum
     SYSTEMConfigPerformance(48000000);
     
+    //init the devise
     initIO();
     initUSB();
-    //initialize debug UART
-    UART_init(115200, 0);
-    UART_sendString("\r\n\n\nMidiStick ", 0); UART_sendString(NVM_getFWVersionString(), 0); UART_sendString(" - from ", 0); UART_sendString(NVM_getFWCompileDate(), 0); UART_sendString(" ", 0); UART_sendString(NVM_getFWCompileTime(), 1);
     
+    //initialize debug UART - this is not needed for normal operation, but does not affect preformance much
+    UART_init(115200, 0);
+    
+    //print device information (fw version, build date&time, bootloader version and serial number)
+    UART_sendString("\r\n\n\nMidiStick ", 0); UART_sendString(NVM_getFWVersionString(), 0); UART_sendString(" - from ", 0); UART_sendString(NVM_getFWCompileDate(), 0); UART_sendString(" ", 0); UART_sendString(NVM_getFWCompileTime(), 1);  
     char * blVer = NVM_getBootloaderVersionString();
     UART_sendString("\r\nBootloader V", 0); UART_sendString(blVer, 1);
     UART_sendString("Serial number: ", 0); UART_sendInt(NVM_getSerialNumber(), 1);
     free(blVer);
-    
-    
     
     //enable interrupts. the asm stuff is required to set the CP0 register to enable them
     INTCONbits.MVEC = 1;
@@ -81,6 +83,7 @@ void main(void) {
     val |= 0b1;
     asm volatile("mtc0   %0,$12" : "+r"(val));
     
+    //Check for remenants of a finished update and remove them
     NVM_finishFWUpdate();
     
     while(1){   //run the required tasks
@@ -93,7 +96,10 @@ void initIO(){
     TRISA = 0;
     LATA = 0;
     TRISBCLR = _LATB_LATB5_MASK | _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK | _LATB_LATB15_MASK;
+    
+    //The LEDs are common anode and connected to the +5V rail, so enable the open drain inputs
     ODCBSET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
+    
     LATBSET = _LATB_LATB7_MASK | _LATB_LATB9_MASK;
     LATBCLR = _LATB_LATB5_MASK | _LATB_LATB8_MASK | _LATB_LATB15_MASK;
 }
