@@ -1,3 +1,0 @@
-0000000000000000000000000000000000000000 6cf54ba258676c686d2f8a5e4eb795fbc8d7f6af TMaxElectronics <60486146+TMaxElectronics@users.noreply.github.com> 1592139098 +0200	commit (initial): Initial release
-6cf54ba258676c686d2f8a5e4eb795fbc8d7f6af 6bdf8ebf2fde402ed1d4a6c5dbc9c67d1740f140 TMaxElectronics <60486146+TMaxElectronics@users.noreply.github.com> 1592140019 +0200	commit: -moved usb library headers to "usb lib/" -cleaned up file structure, removed unsued files
-6bdf8ebf2fde402ed1d4a6c5dbc9c67d1740f140 514be6ee87324161dbe1131de871484ac12918a6 TMaxElectronics <60486146+TMaxElectronics@users.noreply.github.com> 1592140785 +0200	commit: Beta 1.0 release
