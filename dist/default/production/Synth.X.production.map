@@ -294,7 +294,7 @@ section                    address  length [bytes]      (dec)  Description
 .text.INTRestoreInterru 0x9d01074c           0x1c          28   
 .text._vfprintf_cdnopux 0x9d010768           0x1c          28   
 .text.putc              0x9d010784           0x1c          28   
-_05fc48405f50ced5       0x9d01b000         0x3000       12288   
+_05f0b8405f50d4de       0x9d01b000         0x3000       12288   
 .rodata                 0x9d01e000          0x16c         364  Read-only const 
 .text._io_exit          0x9d01e16c           0x14          20   
 .app_excpt              0x9d01e180           0x10          16  General-Exception 
@@ -383,7 +383,7 @@ _05fc48405f50ced5       0x9d01b000         0x3000       12288
 .text                   0x9d01e768         0x1520        5408  App's exec code 
 .text                   0x9d01fc88          0x34c         844  App's exec code 
 .text._stub_sbd_memlayo 0x9d01ffd4           0x2c          44   
-_060749605f50ced5       0x9d020000            0x4           4   
+_05fc49605f50d4de       0x9d020000            0x4           4   
       Total kseg0_program_mem used  :     0x148fc       84220  33.6% of 0x3d410
 
 kseg0 Boot-Memory Usage
@@ -2357,9 +2357,9 @@ LOAD data_init
 .data           0x00000000        0x0
  .data          0x00000000        0x0 c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib/./proc/32MX270F256B/crt0_mips32r2.o
 
-_05fc48405f50ced5
+_05f0b8405f50d4de
                 0x9d01b000     0x3000
- _05fc48405f50ced5
+ _05f0b8405f50d4de
                 0x9d01b000     0x3000 build/default/production/ConfigManager.o
                 0x9d01b000                ConfigData
 
@@ -2369,9 +2369,9 @@ _05fc48405f50ced5
                 0xbfc00480       0x2c c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib\debug-exception-return.o
                 0xbfc00480                __DbgExecReturn
 
-_060749605f50ced5
+_05fc49605f50d4de
                 0x9d020000        0x4
- _060749605f50ced5
+ _05fc49605f50d4de
                 0x9d020000        0x4 build/default/production/ConfigManager.o
                 0x9d020000                FWUpdate
 
@@ -11430,8 +11430,6 @@ __linked_.vector_7                                dist/default/production/Synth.
 __linked_.vector_8                                dist/default/production/Synth.X.production.elf
 __linked_.vector_9                                dist/default/production/Synth.X.production.elf
 __linked_.vector_default                          dist/default/production/Synth.X.production.elf
-__linked__05fc48405f50ced5                        dist/default/production/Synth.X.production.elf
-__linked__060749605f50ced5                        dist/default/production/Synth.X.production.elf
 __ltdf2                                           c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib\libm.a(dpcmp.o)
 __ltsf2                                           c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib\libm.a(fpcmp.o)
 __mchp_expf                                       c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib\libm.a(fpexp32.o)
@@ -11675,6 +11673,8 @@ errno                                             c:/program files (x86)/microch
                                                   c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib\libm.a(w_powf.o)
                                                   c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib\liblega-c.a(_iobfuncs.o)
                                                   c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib\liblega-c.a(malloc.o)
+f0b84::__linked(f50d4, double,...)                dist/default/production/Synth.X.production.elf
+fc496::__linked(f50d4, double,...)                dist/default/production/Synth.X.production.elf
 fpadd                                             c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3/../../../../pic32mx/lib\libm.a(fp32subadd.o)
                                                   c:/program files (x86)/microchip/xc32/v1.44/bin/bin/../../lib/gcc/pic32mx/4.8.3\libgcc.a(floatunsisf.o)
                                                   build/default/production/MidiController.o

@@ -25,7 +25,7 @@ CoilConfig defaultCoil = {"default coil            ", 200, 0, 10, 25, 600};     
  */
 
 //initialize the default configuration
-const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9D01F000 - BYTE_PAGE_SIZE * 4))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V0.92"
+const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9D01F000 - BYTE_PAGE_SIZE * 4))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V0.93"
     , .cfg.fwStatus = 0x10, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.stereoSlope), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x0002, 
     .cfg.stereoPosition = 64, .cfg.stereoWidth = 16, .cfg.stereoSlope = 255};
 
