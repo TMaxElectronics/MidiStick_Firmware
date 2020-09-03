@@ -54,6 +54,8 @@ please contact mla_licensing@microchip.com
 #include "usb lib/usb_ch9.h"
 #include "usb lib/usb_device.h"
 #include "usb lib/usb_device_local.h"
+#include "ConfigManager.h"
+#include "UART32.h"
 
 #ifndef uintptr_t
     #if  defined(__XC8__) || defined(__XC16__)
@@ -2032,6 +2034,10 @@ static void USBStdSetCfgHandler(void)
  *
  * Note:            None
  *******************************************************************/
+
+USBSerialNumberDescriptor new;
+USB_DEVICE_DESCRIPTOR dynamicDescriptor;
+
 static void USBStdGetDscHandler(void)
 {
     if(SetupPkt.bmRequestType == 0x80)
@@ -2041,12 +2047,13 @@ static void USBStdGetDscHandler(void)
         switch(SetupPkt.bDescriptorType)
         {
             case USB_DESCRIPTOR_DEVICE:
-                #if !defined(USB_USER_DEVICE_DESCRIPTOR)
-                    inPipes[0].pSrc.bRom = (const uint8_t*)&device_dsc;
-                #else
-                    inPipes[0].pSrc.bRom = (const uint8_t*)USB_USER_DEVICE_DESCRIPTOR;
-                #endif
-                inPipes[0].wCount.Val = sizeof(device_dsc);
+                dynamicDescriptor.bLength = sizeof(USB_DEVICE_DESCRIPTOR);
+                memcpy(&dynamicDescriptor, &device_dsc, sizeof(USB_DEVICE_DESCRIPTOR));
+                dynamicDescriptor.idProduct = NVM_getConfig()->USBPID;
+                inPipes[0].info.bits.ctrl_trf_mem = 1;
+                inPipes[0].pSrc.bRam = &dynamicDescriptor;
+                inPipes[0].wCount.Val = *inPipes[0].pSrc.bRam;
+                //UART_sendString("loading descriptor", 1);
                 break;
             case USB_DESCRIPTOR_CONFIGURATION:
                 //First perform error case check, to make sure the host is requesting a 
@@ -2064,7 +2071,8 @@ static void USBStdGetDscHandler(void)
                     //  may not be word aligned for the 16 or 32 bit machines resulting
                     //  in an address error on the dereference.
                     inPipes[0].wCount.byte.LB = *(inPipes[0].pSrc.bRom+2);
-                    inPipes[0].wCount.byte.HB = *(inPipes[0].pSrc.bRom+3);
+                    inPipes[0].wCount.byte.HB = *(inPipes[0].pSrc.bRom+3); 
+                    inPipes[0].info.bits.ctrl_trf_mem = 0;
                 }
 				else
 				{
@@ -2075,24 +2083,63 @@ static void USBStdGetDscHandler(void)
                 //USB_NUM_STRING_DESCRIPTORS was introduced as optional in release v2.3.  In v2.4 and
                 //  later it is now mandatory.  This should be defined in usb_config.h and should
                 //  indicate the number of string descriptors.
-                if(SetupPkt.bDscIndex<USB_NUM_STRING_DESCRIPTORS)
-                {
+                if(SetupPkt.bDscIndex<USB_NUM_STRING_DESCRIPTORS){
                     //Get a pointer to the String descriptor requested
-                    inPipes[0].pSrc.bRom = *(USB_SD_Ptr+SetupPkt.bDscIndex);
-                    // Set data count
-                    inPipes[0].wCount.Val = *inPipes[0].pSrc.bRom;                    
-                }
-                #if defined(IMPLEMENT_MICROSOFT_OS_DESCRIPTOR)
-                else if(SetupPkt.bDscIndex == MICROSOFT_OS_DESCRIPTOR_INDEX)
-                {
-                    //Get a pointer to the special MS OS string descriptor requested
-                    inPipes[0].pSrc.bRom = (const uint8_t*)&MSOSDescriptor;
-                    // Set data count
-                    inPipes[0].wCount.Val = *inPipes[0].pSrc.bRom;                    
-                }    
-                #endif
-                else
-                {
+                    //UART_sendString("Load des. ", 0); UART_sendInt(SetupPkt.bDscIndex, 1);
+                    
+                    if(SetupPkt.bDscIndex == 3){        //generate struct with the serial number
+                        
+                        new.bDscType = USB_DESCRIPTOR_STRING;
+                        new.bLength = sizeof(USBSerialNumberDescriptor);
+                        //UART_sendString("load sn: ", 0);
+                        char buff[20];
+                        sprintf(buff, "%u\0", NVM_getSerialNumber());
+                        
+                        uint16_t * currTarget = new.string;
+                        uint8_t c = 0;
+                        unsigned filling = 0;
+                        for(c = 0; c < 10; c++){
+                            if(!filling){
+                                if(buff[c] == 0) filling = 1;
+                                *(currTarget++) = buff[c]; 
+                            }else{
+                                *(currTarget++) = ' '; 
+                            }
+                            //UART_sendChar(*(currTarget-1));
+                        }
+                        inPipes[0].info.bits.ctrl_trf_mem = 1;
+                        inPipes[0].pSrc.bRam = &new;
+                        inPipes[0].wCount.Val = *inPipes[0].pSrc.bRam;
+                    }else if(SetupPkt.bDscIndex == 2){        //generate struct with the device name
+                        
+                        new.bDscType = USB_DESCRIPTOR_STRING;
+                        new.bLength = 2 + strlen(NVM_getConfig()->name)*2;
+                        
+                        
+                        char * src = NVM_getConfig()->name;
+                        uint16_t * currTarget = new.string;
+                        uint8_t c = 0;
+                        unsigned filling = 0;
+                        //UART_sendString("load devName ", 0); UART_sendString(src, 1);
+                        //UART_sendString("length = ", 0); UART_sendInt(new.bLength, 1);
+                        for(c = 0; c < new.bLength; c++){
+                            if(!filling){
+                                if(src[c] == 0) filling = 1;
+                                *(currTarget++) = src[c]; 
+                            }else{
+                                *(currTarget++) = ' '; 
+                            }
+                        }
+                        inPipes[0].info.bits.ctrl_trf_mem = 1;
+                        inPipes[0].pSrc.bRam = &new;
+                        inPipes[0].wCount.Val = *inPipes[0].pSrc.bRam;
+                    }else{
+                        inPipes[0].pSrc.bRom = *(USB_SD_Ptr+SetupPkt.bDscIndex);        //load data from the string descriptor pointers
+                        inPipes[0].wCount.Val = *inPipes[0].pSrc.bRom;   
+                        inPipes[0].info.bits.ctrl_trf_mem = 0;
+                    }   
+                    // Set data count                 
+                }else{
                     inPipes[0].info.Val = 0;
                 }
                 break;

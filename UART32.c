@@ -28,17 +28,9 @@ void UART_sendInt(unsigned long data, unsigned newLine){
     
     char buffer[10] = {"          "};;
     
-    sprintf(buffer, "%u" ,data);
+    sprintf(buffer, "%d\0" ,data);
     
-    int currPos = 0;
-    int length = 10;
-    
-    for(;currPos < length; currPos ++){
-        UART_sendChar(buffer[currPos]);
-    }
-    
-    if(newLine) UART_sendChar('\n');
-    if(newLine) UART_sendChar('\r');
+    UART_sendString(buffer, newLine);
 }
 
 void UART_sendHex(uint32_t data, unsigned newLine){

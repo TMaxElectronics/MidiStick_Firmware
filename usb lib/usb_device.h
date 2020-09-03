@@ -62,6 +62,12 @@ please contact mla_licensing@microchip.com
 #define USB_EP0_NO_DATA        0x00     //no data to send
 #define USB_EP0_NO_OPTIONS     0x00     //no options set
 
+typedef struct{
+    uint8_t bLength;
+    uint8_t bDscType;
+    uint16_t string[24];
+} USBSerialNumberDescriptor;
+
 /********************************************************************
  * Standard Request Codes
  * USB 2.0 Spec Ref Table 9-4

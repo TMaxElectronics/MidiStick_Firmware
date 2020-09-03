@@ -3,8 +3,6 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
 
-#include "usb lib/usb_ch9.h"
-
 #define FW_STATE_NORMAL 0xff
 #define FW_STATE_UPDATEREQUEST 0x01     //copy the firmware as normal
 #define FW_STATE_VERIFICATION 0x02      //copy the FW and overwrite settings
@@ -49,6 +47,11 @@ typedef struct{
     uint32_t resMemEnd;
     char compileDate[20];
     char compileTime[20];
+    uint16_t USBPID;
+    
+    uint8_t stereoPosition;
+    uint8_t stereoWidth;
+    uint8_t stereoSlope;
 } CFGData;
 
 typedef struct {
@@ -65,7 +68,7 @@ typedef struct {
     USBDevNameHeader devName;
 } CONF;
 
-extern const volatile CONF ConfigData;
+extern const volatile CONF ConfigData; 
 
 //read and write for programm data
 unsigned NVM_readProgrammConfig(MidiProgramm * dest, uint8_t index);    //reads config from NVM (Non Volatile Memory) to ram
@@ -79,12 +82,12 @@ unsigned NVM_writeCoilConfig(CoilConfig * src, uint8_t index);
 void NVM_copyCoilData(CoilConfig * dst, CoilConfig * src);
 unsigned NVM_isCoilConfigValid(uint8_t index);
 
-const char* NVM_getDeviceName();        //returns the pointer to the device name
-
 void NVM_eraseFWUpdate();
 void NVM_writeFWUpdate(void* src, uint32_t pageOffset);
 
 unsigned NVM_writeCFG(CFGData * src);
+unsigned NVM_updateDevicePID(uint16_t newPID);
+unsigned NVM_SriteStereoParameters(uint8_t c, uint8_t w, uint8_t s);
 
 void NVM_memclr4096(void* start, uint32_t length);
 void NVM_memcpy4(void * dst, void * src, uint32_t length);

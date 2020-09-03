@@ -74,7 +74,7 @@
         <archiverTool>
         </archiverTool>
         <loading>
-          <loadableFile>bootloader_v1.hex</loadableFile>
+          <loadableFile>bootloader_v1.2.hex</loadableFile>
           <useAlternateLoadableFile>false</useAlternateLoadableFile>
           <parseOnProdLoad>false</parseOnProdLoad>
           <alternateLoadableFile></alternateLoadableFile>
@@ -281,15 +281,13 @@
         <property key="memories.programmemory" value="true"/>
         <property key="memories.programmemory.ranges" value="1d000000-1d03ffff"/>
         <property key="poweroptions.powerenable" value="false"/>
-        <property key="programmerToGoFilePath"
-                  value="F:/OneDrive/MPLab Projects/Synth.X/debug/default/Synth_ptg"/>
         <property key="programmerToGoImageName" value="Synth_ptg"/>
         <property key="programoptions.donoteraseauxmem" value="false"/>
         <property key="programoptions.eraseb4program" value="true"/>
         <property key="programoptions.ledbrightness" value="5"/>
-        <property key="programoptions.pgcconfig" value="pull down"/>
+        <property key="programoptions.pgcconfig" value="pull up"/>
         <property key="programoptions.pgcresistor.value" value="4.7"/>
-        <property key="programoptions.pgdconfig" value="pull down"/>
+        <property key="programoptions.pgdconfig" value="pull up"/>
         <property key="programoptions.pgdresistor.value" value="4.7"/>
         <property key="programoptions.pgmentry.voltage" value="low"/>
         <property key="programoptions.pgmspeed" value="Med"/>
@@ -331,7 +329,7 @@
         <archiverTool>
         </archiverTool>
         <loading>
-          <loadableFile>bootloader_v1.hex</loadableFile>
+          <loadableFile>bootloader_v1.2.hex</loadableFile>
           <useAlternateLoadableFile>false</useAlternateLoadableFile>
           <parseOnProdLoad>false</parseOnProdLoad>
           <alternateLoadableFile></alternateLoadableFile>
@@ -538,8 +536,6 @@
         <property key="memories.programmemory" value="true"/>
         <property key="memories.programmemory.ranges" value="1d000000-1d03ffff"/>
         <property key="poweroptions.powerenable" value="false"/>
-        <property key="programmerToGoFilePath"
-                  value="F:/OneDrive/MPLab Projects/Synth.X/debug/tte/Synth_ptg"/>
         <property key="programmerToGoImageName" value="Synth_ptg"/>
         <property key="programoptions.donoteraseauxmem" value="false"/>
         <property key="programoptions.eraseb4program" value="true"/>

@@ -1,9 +1,13 @@
 #include "ConfigManager.h"
 #include "UART32.h"
+#include "usb lib/usb_ch9.h"
+#include "MidiController.h"
 #include <stdint.h>
 #include <string.h>
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
+
+#define FORCE_SETTINGS_OVERRIDE 0
 
 MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
 CoilConfig defaultCoil = {"default coil            ", 200, 0, 10, 25, 600};                              //default coil must not output anything, so the max on time is set to zero
@@ -21,13 +25,14 @@ CoilConfig defaultCoil = {"default coil            ", 200, 0, 10, 25, 600};     
  */
 
 //initialize the default configuration
-const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9D01F000 - BYTE_PAGE_SIZE * 4))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V0.9"
-    , .cfg.fwStatus = 0x10, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.resMemEnd), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}};
+const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9D01F000 - BYTE_PAGE_SIZE * 4))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V0.92"
+    , .cfg.fwStatus = 0x10, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.stereoSlope), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x0002, 
+    .cfg.stereoPosition = 64, .cfg.stereoWidth = 16, .cfg.stereoSlope = 255};
 
-const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {0xaa, 0xee};    //dummy data
+const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {FORCE_SETTINGS_OVERRIDE};    //dummy data
 
 //erase all memory possibly containing previous firmware updates
-void NVM_eraseFWUpdate(){
+void NVM_eraseFWUpdate(){ 
     NVM_memclr4096(&FWUpdate, 0x1f000);
 }
 
@@ -63,7 +68,54 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
     CFGData * buffer = malloc(PAGE_SIZE);
     memcpy(buffer, pageStart, PAGE_SIZE);
     
-    //overwrite the old data for fwStatus (otherwise the bootloader would just copy stuff again), reserved memory regions and the firmware version
+    //make sure all parameters are within their valid range, if one is outside it, write the default value
+    //This is needed if a setting was added, as the value at that location is not predictable, and could potenitally cause problems
+    //If for example a device with V0.9 was updated to V0.91 (where the custom Pids were added) it would have a pid of 0x3e1, which would effectively soft brick the device
+    if(buffer->name[0] == 0){
+        strcpy(buffer->name, "Midi Stick");
+    }
+    
+    if(buffer->ledMode1 > LED_TYPE_COUNT){
+        buffer->ledMode1 = LED_DATA;
+    }
+    
+    if(buffer->ledMode2 > LED_TYPE_COUNT){
+        buffer->ledMode2 = LED_DUTY_LIMITER;
+    }
+    
+    if(buffer->ledMode3 > LED_TYPE_COUNT){
+        buffer->ledMode3 = LED_OUT_ON;
+    }
+    
+    if(buffer->auxMode > AUX_MODE_COUNT){
+        buffer->auxMode = AUX_AUDIO;
+    }
+    
+    if(buffer->resMemStart != ((uint32_t) &ConfigData)){
+        buffer->resMemStart == ((uint32_t) &ConfigData);
+    }
+    
+    if(buffer->resMemEnd != ((uint32_t) &ConfigData.cfg.stereoSlope)){
+        buffer->resMemEnd == buffer->resMemStart + sizeof(CFGData);
+    }
+    
+    if(buffer->USBPID != 0x0002 && (buffer->USBPID >= 0x1010 || buffer->USBPID < 0x1000)){
+        buffer->USBPID = 0x0002;
+    }
+    
+    if(buffer->stereoPosition > 127){
+        buffer->stereoPosition = 64;
+    }
+    
+    if(buffer->stereoWidth > 64){
+        buffer->stereoWidth = 64;
+    }
+    
+    if(buffer->stereoSlope == 0){
+        buffer->stereoSlope = 0xff;
+    }
+    
+    //overwrite the old data for fwStatus (otherwise the bootloader would just copy stuff again) and the firmware version string
     buffer->fwStatus = 0x10;
     memcpy(buffer->fwVersion, updatedCFG->fwVersion, 24);
     buffer->resMemEnd = updatedCFG->resMemEnd;
@@ -150,10 +202,52 @@ unsigned NVM_writeCFG(CFGData * src){
     NVM_memcpy128(pageStart, settingsBuffer, PAGE_SIZE);
     //UART_sendString("write:  ", 0); UART_sendString(ConfigData.cfg.name, 1); 
     free(settingsBuffer);
+    return 1;
+}
+
+unsigned NVM_updateDevicePID(uint16_t newPID){
+    if(newPID != 0x0002 && (newPID < 0x1000 || newPID > 0x1010)) return 0;
+    void* pageStart = (void*) &ConfigData.cfg; //the page containing the config data starts here and contains the coil configs as well
+    
+    //copy page data to ram
+    void* settingsBuffer = malloc(PAGE_SIZE);
+    memcpy(settingsBuffer, pageStart, PAGE_SIZE);
+    
+    CFGData * currCFG = settingsBuffer;
+    
+    currCFG->USBPID = newPID;
+    
+    //erase the page and write data from ram
+    NVM_erasePage(pageStart);
+    NVM_memcpy128(pageStart, settingsBuffer, PAGE_SIZE);
+    UART_sendString("write:  ", 0); UART_sendInt(ConfigData.cfg.USBPID, 1); 
+    free(settingsBuffer);
+    return 1;
+}
+
+
+unsigned NVM_SriteStereoParameters(uint8_t c, uint8_t w, uint8_t s){
+    void* pageStart = (void*) &ConfigData.cfg; //the page containing the config data starts here and contains the coil configs as well
+    
+    //copy page data to ram
+    void* settingsBuffer = malloc(PAGE_SIZE);
+    memcpy(settingsBuffer, pageStart, PAGE_SIZE);
+    
+    CFGData * currCFG = settingsBuffer;
+    
+    currCFG->stereoPosition = c;
+    currCFG->stereoWidth = w;
+    currCFG->stereoSlope = s;
+    
+    //erase the page and write data from ram
+    NVM_erasePage(pageStart);
+    NVM_memcpy128(pageStart, settingsBuffer, PAGE_SIZE);
+    free(settingsBuffer);
+    return 1;
 }
 
 unsigned NVM_isValidProgramm(uint8_t index){
-    return ConfigData.programm[index].name[0] != 0 && (uint8_t) ConfigData.programm[index].name[0] != 0xff;
+    return (ConfigData.programm[index].name[0] != 0 && (uint8_t) ConfigData.programm[index].name[0] != 0xff) && index < 128;
 }
 
 unsigned NVM_isCoilConfigValid(uint8_t index){
@@ -254,6 +348,7 @@ unsigned int __attribute__((nomips16)) NVM_operation(unsigned int nvmop){
     int susp;
     
     int_status = INTDisableInterrupts();
+    LATBCLR = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));  //make sure to turn off the output just in case
     
     NVMCON = NVMCON_WREN | nvmop;
     {

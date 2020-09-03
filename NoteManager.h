@@ -11,8 +11,6 @@ typedef struct DLLElement{
     Note data;
 } NoteListElement;    
 
-NoteListElement * NoteManager_head = 0;
-
 void NoteManager_init();
 
 void NoteManager_addNote(uint8_t note, uint8_t velocity);

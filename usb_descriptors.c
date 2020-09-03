@@ -18,10 +18,10 @@ const USB_DEVICE_DESCRIPTOR device_dsc=
     USB_EP0_BUFF_SIZE,          // Max packet size for EP0, see usb_config.h
     0x0888,                 // Vendor ID
     0x0002,                 // Product ID: Custom HID device demo
-    0x0100,                 // Device release number in BCD format
+    0x0101,                 // Device release number in BCD format
     0x01,                   // Manufacturer string index
     0x02,                   // Product string index
-    0x00,                   // Device serial number string index
+    0x03,                   // Device serial number string index
     0x01                    // Number of possible configurations
 };
 
@@ -33,7 +33,7 @@ const uint8_t configDescriptor1[]={
     0x5f,0x00,            // Total length of data for this cfg
     3,                      // Number of interfaces in this cfg
     1,                      // Index value of this configuration
-    0,                      // Configuration string index
+    1,                      // Configuration string index
     _DEFAULT,               // Attributes, see usb_device.h
     50,                     // Max power consumption (2X mA)
 
@@ -46,7 +46,7 @@ const uint8_t configDescriptor1[]={
     1,                      // Class code
     1,                      // Subclass code
     0,                      // Protocol code
-    0,                      // Interface string index
+    2,                      // Interface string index
 
     /* MIDI Adapter Class-specific AC Interface Descriptor */
     0x09,       //bLength
@@ -101,7 +101,7 @@ const uint8_t configDescriptor1[]={
     0x01,       //BaAssocJackID(1)
     
     
-							
+    					
     /* Interface Descriptor */
     0x09,//sizeof(USB_INTF_DSC),   // Size of this descriptor in bytes
     USB_DESCRIPTOR_INTERFACE,               // INTERFACE descriptor type
@@ -111,7 +111,7 @@ const uint8_t configDescriptor1[]={
     HID_INTF,               // Class code
     0,     // Subclass code
     0,     // Protocol code
-    0,                      // Interface string index
+    2,                      // Interface string index
     
     //offset here = 72
     /* HID Class-Specific Descriptor */
@@ -141,9 +141,9 @@ const uint8_t configDescriptor1[]={
 };
 
 
-//Language code string descriptor
+//Serial number descriptor is dynamically loaded, so this is not used anymore
 const struct{uint8_t bLength;uint8_t bDscType;uint16_t string[1];}sd000={
-sizeof(sd000),USB_DESCRIPTOR_STRING,{0x0409
+sizeof(sd000),USB_DESCRIPTOR_STRING,{0x0410
 }};
 
 //Manufacturer string descriptor
@@ -159,12 +159,12 @@ const uint8_t *const USB_CD_Ptr[]=
     (const uint8_t *const)&configDescriptor1
 };
 
-//Array of string descriptors
+//Array of string descriptors, &sd000, means that the data will be dynamically loaded in from ram
 const uint8_t *const USB_SD_Ptr[]=
 {
     (const uint8_t *const)&sd000,
     (const uint8_t *const)&sd001,
-    (const uint8_t *const)&ConfigData.devName
+    (const uint8_t *const)&sd000
 };
 
 //Class specific descriptor - HID 

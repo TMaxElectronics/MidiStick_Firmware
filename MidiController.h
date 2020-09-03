@@ -16,10 +16,14 @@
 #define USB_CMD_CLEAR_ALL_PROGRAMMS     0x26
 #define USB_CMD_CLEAR_ALL_COILS         0x27
 #define USB_CMD_COILCONFIG_NOT_CHANGED  0x28
+#define USB_CMD_SET_STERO_CONFIG        0x29
+#define USB_CMD_GET_STERO_CONFIG        0x2a
 
 #define USB_CMD_GET_DEVCFG              0x30
 #define USB_CMD_SET_DEVCFG              0x31
 #define USB_CMD_BLINK                   0x32
+#define USB_CMD_SET_USBPID              0x33
+#define USB_CMD_IS_SAFE                 0x34
 #define USB_GET_CURR_NOTES              0x88
 #define USB_CMD_PING                    0
 
@@ -46,6 +50,7 @@
 #define MIDI_CC_RESET_ALL_CONTROLLERS   0x79
 #define MIDI_CC_ALL_NOTES_OFF           0x7B
 #define MIDI_CC_VOLUME                  0x07
+#define MIDI_CC_PAN                     0x0A
 #define MIDI_CC_RPN_LSB                 0x64
 #define MIDI_CC_RPN_MSB                 0x65
 #define MIDI_CC_NRPN_LSB                0x62
@@ -75,12 +80,16 @@
 #define LED_DUTY_LIMITER   3
 #define LED_ADSR_PREVIEW   4
 
+#define LED_TYPE_COUNT     5
+
 #define LED_OFF            0
 #define LED_ON             1
 #define LED_BLINK          2
 
 #define AUX_AUDIO          0
 #define AUX_E_STOP         1
+
+#define AUX_MODE_COUNT     2
 
 //struct to contain all variables and parameters for the voices
 typedef struct{
@@ -109,10 +118,11 @@ void Midi_run();
 
 //On time calculation functions
 void Midi_setNoteOnTime(uint16_t onTimeUs, uint8_t ch);
-//uint16_t Midi_getNoteOnTime();
+void Midi_calculateStereoVolume(uint8_t channel);
 
 //note config routines
 void Midi_setNote(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel);
+void Midi_NoteOff(uint8_t voice, uint8_t channel);
 void Midi_setNoteTPR(uint8_t voice, uint16_t freq);
 
 //Calculates the ADSR Coefficients
@@ -126,3 +136,6 @@ inline void Midi_timerHandler(uint8_t voice);
 
 //"HAL" for led on,off and invert
 void Midi_LED(uint8_t type, uint8_t state);
+
+unsigned Midi_isNoteOff(uint8_t voice);
+void Midi_noteOff(uint8_t voice);

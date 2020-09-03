@@ -5,6 +5,8 @@
 
 uint8_t NoteManager_currNotes = 0;
 
+NoteListElement * NoteManager_head = 0;
+
 void NoteManager_init(){
     NoteManager_head = malloc(sizeof(NoteListElement));
     NoteManager_head->next = NoteManager_head;
