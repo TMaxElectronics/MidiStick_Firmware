@@ -6,17 +6,12 @@ This Repo contains the Firmware it uses
 
 # What are the features?
 It is a four-voice polyphonic synthesizer that has an ADSR (attack decay sustain release) engine with adjustable parameters, has programmable presets for these effects that can be selected with the MIDI program change command and can impose limits on the output signal, to prevent damage to the attached coil. 
-It will also support modulation and an adjustable stereo position for each stick in the future.
 
 # How far is it?
-The hardware is done. The software is now in a not quite V1.0 test state.
-It currently has four voices, functioning ADSR, can load and save presets for coil parameters and sound parameters and can decode MIDI messages coming in via USB.
+The hardware is done, with V1.0 supporting HFBR series transmitter and V1.1 supporting both HFBR and IF-E96E ones. There is also an option for an aux output to send audio to anything else OR use an external E-STOP button. It also supports stereo, with each stick getting a unique stereo position.
 
-Each stick can be given a unique 21 character nickname inthe config software, and has a unique serial number that the software uses to identify it.
-A bootloader is included too (but it has no fallback if the firmware update fails, requiring a pickit or other programmer to recover. A UART fallback option will be a V1.0 feature)
+The software is working as well, but there are still some bugs to fix until V1.0.
+The stick currently has four voices, functioning ADSR, can load and save presets for coil and sound parameters, decode MIDI messages coming in via USB and generate the interrupter waveform for a Tesla Coil. And multiple sticks can be used simultainiously to allow for multi-coil setups.
 
 # Releases
-- Beta 1.0: First stable release, missing modulation, and just about every feature required...
-
-- V0.9: four voices, a proper duty cycle limiter, a bootloader, a usable configuration utility as well as settings for each synth.
-        Beware when updating using a pic-programmer, as it will overwrite the serial number stored in the bootflash at 
+Moved this to the [releases page](https://github.com/TMaxElectronics/MidiStick_Firmware/releases)
