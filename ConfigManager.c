@@ -10,7 +10,7 @@
 #define FORCE_SETTINGS_OVERRIDE 0
 
 MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
-CoilConfig defaultCoil = {"default coil            ", 200, 0, 10, 25, 600};                              //default coil must not output anything, so the max on time is set to zero
+CoilConfig defaultCoil = {"default coil          ", 200, 0, 10, 25, 800};                              //default coil must not output anything, so the max on time is set to zero
 
 /*
  * This here is a bit of voodoo. In the linker I have ordered the compiler not to touch NVM above 0x9D020000 when generating code, so this will always be free.
@@ -25,7 +25,7 @@ CoilConfig defaultCoil = {"default coil            ", 200, 0, 10, 25, 600};     
  */
 
 //initialize the default configuration
-const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9D01F000 - BYTE_PAGE_SIZE * 4))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V0.93"
+const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9D01F000 - BYTE_PAGE_SIZE * 4))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V0.95"
     , .cfg.fwStatus = 0x10, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.stereoSlope), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x0002, 
     .cfg.stereoPosition = 64, .cfg.stereoWidth = 16, .cfg.stereoSlope = 255};
 
@@ -138,6 +138,11 @@ unsigned NVM_readProgrammConfig(MidiProgramm * dest, uint8_t index){
     //UART_sendString("valid: ", 0); UART_sendHex(curr.name[0], 1);
     NVM_copyProgrammData(dest, &curr);
     return 1;
+}                       //checks if the data is valid (first byte of name is not 0)
+
+MidiProgramm * NVM_getProgrammConfig(uint8_t id){
+    if(!NVM_isValidProgramm(id)) return &defaultProgramm;
+    return &ConfigData.programm[id];
 }
 
 void NVM_clearAllProgramms(){
@@ -348,7 +353,7 @@ unsigned int __attribute__((nomips16)) NVM_operation(unsigned int nvmop){
     int susp;
     
     int_status = INTDisableInterrupts();
-    LATBCLR = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));  //make sure to turn off the output just in case
+    LATBCLR = _LATB_LATB15_MASK | _LATB_LATB5_MASK;  //make sure to turn off the output just in case
     
     NVMCON = NVMCON_WREN | nvmop;
     {

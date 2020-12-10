@@ -43,6 +43,8 @@
 #include "MidiController.h"
 #include "UART32.h"
 #include "ConfigManager.h"
+#include "DLL.h"
+#include "ADSREngine.h"
 
 void initIO();
 void initUSB();
@@ -66,7 +68,7 @@ void main(void) {
     initIO();
     initUSB();
     
-    //initialize debug UART - this is not needed for normal operation, but does not affect preformance much
+    //initialize debug UART - this is not needed for normal operation, but does not affect preformance
     UART_init(115200, 0);
     
     //print device information (fw version, build date&time, bootloader version and serial number)
@@ -76,10 +78,12 @@ void main(void) {
     UART_sendString("Serial number: ", 0); UART_sendInt(NVM_getSerialNumber(), 1);
     free(blVer);
     
+    
+    
     /* This is a workaround for a glitch in the V1.1 bootloader that caused the opto-transmitter to turn on for one second during initialisation.
      * How does this dirty fix work? 
      * Usually flash needs to be erased prior to changing anything in it. This is because of how it is written, as a write operation can only pull bits to 0, not set them to 1.
-     * But in our case all we need is to clear the bit that turns on the transmitter at boot, so we don't technically have to clear it.
+     * But in our case all we need is to clear the bit that turns on the transmitter at boot, so we don't technically have to erase the page before writing.
      * 
      * To make sure that current value is exactly what what we expect it to be, we check if *instr == 0x34088380, which is the opcode and data for 
      * ori		$t0, $zero, 0b1000001110000000
@@ -103,6 +107,8 @@ void main(void) {
         }
     }
     
+    
+    
     //enable interrupts. the asm stuff is required to set the CP0 register to enable them
     INTCONbits.MVEC = 1;
     unsigned int val;
@@ -113,9 +119,17 @@ void main(void) {
     //Check for remenants of a finished update and remove them
     NVM_finishFWUpdate();
     
+    UART_sendString("Stick is ready!", 1);
+    
+    uint32_t lastRun = 0;
     while(1){   //run the required tasks
         USBDeviceTasks();
         Midi_run();
+        VMS_run();
+        //if(_CP0_GET_COUNT() - lastRun > 240000){
+        //    lastRun = _CP0_GET_COUNT();
+        //    UART_print("voice 2: OT = %d, freq = %d TMR = %d PR = %d (%s)\r\n", Midi_voice[1].otCurrent, Midi_voice[1].freqCurrent, TMR3, PR3, (T3CON & _T2CON_ON_MASK) ? "on" : "off");
+        //}
     }
 }
 
@@ -146,5 +160,12 @@ void initUSB() {
 
 
 void _general_exception_handler ( void ){
-    while(1);
+    INTCONbits.MVEC = 0;
+    LATBCLR = _LATB_LATB15_MASK | _LATB_LATB5_MASK;  
+    
+    while(1){
+        LATBINV = _LATB_LATB9_MASK; //blink red led
+        uint32_t a = 0;
+        for(a = 0; a < 10000000; a ++);
+    }
 }

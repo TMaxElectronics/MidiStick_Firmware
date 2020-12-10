@@ -25,3 +25,4 @@ void UART_sendBin(unsigned long long data, char length, unsigned newLine);
 void UART_sendChar(char data);
 void UART_sendHex(uint32_t data, unsigned newLine);
 void UART_clearOERR();
+void UART_print(char * format, ...);
