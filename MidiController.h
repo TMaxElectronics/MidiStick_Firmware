@@ -102,6 +102,7 @@ inline void Midi_timerHandler(uint8_t voice);
 void Midi_LED(uint8_t type, uint8_t state);
 
 unsigned Midi_isNoteOff(uint8_t voice);
+unsigned Midi_isNoteDecaying(uint8_t voice);
 void Midi_noteOff(uint8_t voice);
 
 ChannelInfo * Midi_getChannelData(uint8_t channel);

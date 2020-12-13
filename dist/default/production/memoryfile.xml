@@ -3,15 +3,15 @@
   <executable name="dist/default/production/Synth.X.production.elf">                 
     <memory name="program">                 
       <units>bytes</units>                 
-      <length>263312</length>                 
-      <used>99988</used>                     
-      <free>163324</free>                     
+      <length>133280</length>                 
+      <used>94528</used>                     
+      <free>38752</free>                     
     </memory>                              
     <memory name="data">              
       <units>bytes</units>                 
       <length>65536</length>                 
-      <used>20308</used>                     
-      <free>45228</free>                     
+      <used>4116</used>                     
+      <free>61420</free>                     
     </memory>                              
   </executable>                            
 </project>                                 

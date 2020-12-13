@@ -87,6 +87,7 @@
         <archiverTool>
         </archiverTool>
         <loading>
+          <loadableFile>bootloader_v1.2.hex</loadableFile>
           <useAlternateLoadableFile>false</useAlternateLoadableFile>
           <parseOnProdLoad>true</parseOnProdLoad>
           <alternateLoadableFile></alternateLoadableFile>
@@ -175,7 +176,7 @@
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-cross-reference-file" value="true"/>
         <property key="generate-micro-compressed-code" value="false"/>
-        <property key="heap-size" value="16384"/>
+        <property key="heap-size" value="30000"/>
         <property key="input-libraries" value=""/>
         <property key="kseg-length" value=""/>
         <property key="kseg-origin" value=""/>
@@ -267,7 +268,7 @@
         <C32Global>
         </C32Global>
       </item>
-      <item path="p32MX270F256B.ld" ex="true" overriding="false">
+      <item path="p32MX270F256B.ld" ex="false" overriding="false">
         <C32>
         </C32>
         <C32-AR>
@@ -389,6 +390,7 @@
         <archiverTool>
         </archiverTool>
         <loading>
+          <loadableFile>bootloader_v1.2.hex</loadableFile>
           <useAlternateLoadableFile>false</useAlternateLoadableFile>
           <parseOnProdLoad>false</parseOnProdLoad>
           <alternateLoadableFile></alternateLoadableFile>

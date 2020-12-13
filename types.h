@@ -18,9 +18,9 @@ typedef struct _MapHeader_ MAPTABLE_HEADER;
 typedef enum {TONE_NORMAL, TONE_NOISE, TONE_SINGE_SHOT} ToneType;
 typedef enum {MOD_AM_NOISE, MOD_FM_NOISE, MOD_AM_SWEEP, MOD_FM_SWEEP} ModulationType;
 typedef enum {VMS_EXP, VMS_EXP_INV, VMS_LIN, VMS_SIN, VMS_JUMP} VMS_MODTYPE;
-typedef enum {maxOnTime, minOnTime, onTime, otCurrent, otTarget, otFactor, frequency, freqCurrent, freqTarget, freqFactor, noise, pTime, KNOWNVAL_MAX} KNOWN_VALUE;
+typedef enum {maxOnTime, minOnTime, onTime, otCurrent, otTarget, otFactor, frequency, freqCurrent, freqTarget, freqFactor, noise, pTime, circ1, KNOWNVAL_MAX} KNOWN_VALUE;
 typedef enum {RISING, FALLING, ANY, NONE} DIRECTION;
-typedef enum {INVERTED = 0, NORMAL = 1} NOTEOFF_BEHAVIOR; //NOTHING: remain in the loop
+typedef enum {INVERTED = 0, NORMAL = 1} NOTEOFF_BEHAVIOR;
 
 
 typedef struct _DLLObject_ DLLObject;
@@ -73,28 +73,32 @@ struct _SynthVoice_{
     uint8_t     currNoteOrigin;
     int32_t     portamentoParam;
     
+    int32_t     circ1;
+    
     uint8_t     id;
     MAPTABLE_DATA * map;
 };
 
 struct _ChannelInfo_{
-    uint32_t bendFactor;   
+    uint32_t        bendFactor;   
     
-    unsigned sustainPedal;
-    unsigned damperPedal;
+    unsigned        sustainPedal;
+    unsigned        damperPedal;
     
-    uint16_t bendMSB;   
-    uint16_t bendLSB;
-    float bendRange;
+    uint16_t        bendMSB;   
+    uint16_t        bendLSB;
+    float           bendRange;
     
-    uint16_t currOT;
-    int32_t     portamentoTime;
+    uint16_t        currOT;
+    int32_t         portamentoTime;
+    uint32_t        lastFrequency;
     
-    uint16_t currVolume;
-    uint16_t currStereoVolume;
-    uint8_t  currStereoPosition;
-    uint16_t currVolumeModifier;
+    uint16_t        currVolume;
+    uint16_t        currStereoVolume;
+    uint8_t         currStereoPosition;
+    uint16_t        currVolumeModifier;
     
+    uint8_t         currProgramm; 
     MAPTABLE_HEADER * currentMap;
 };
 
@@ -108,7 +112,7 @@ struct _VMS_listDataObject_{
     VMS_BLOCK * block;
     void * data;
     
-    uint32_t thresholdDirection;
+    DIRECTION thresholdDirection;
     uint32_t nextRunTime;
     uint32_t period;
 };
@@ -126,6 +130,7 @@ struct _VMS_BLOCK_{
     int32_t param2;
     int32_t param3;
     uint32_t period;
+    uint32_t flags;
 };
 
 

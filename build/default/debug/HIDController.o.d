@@ -1,4 +1,4 @@
-build/default/production/HIDController.o:  \
+build/default/debug/HIDController.o:  \
 HIDController.c  \
 HIDController.h  \
  usb\ lib/usb.h  \

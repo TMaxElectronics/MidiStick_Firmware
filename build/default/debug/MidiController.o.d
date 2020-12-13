@@ -15,4 +15,5 @@ UART32.h  \
  ADSREngine.h  \
 SignalGenerator.h  \
 VMSRoutines.h  \
-mapper.h 
+mapper.h  \
+HIDController.h 

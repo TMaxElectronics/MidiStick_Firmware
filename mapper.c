@@ -4,31 +4,14 @@
 #include "SignalGenerator.h"
 #include "mapper.h"
 #include "VMSRoutines.h"
+#include "HIDController.h"
 
-#define MAX_PORTAMENTOTIME 10000
+#define MAX_PORTAMENTOTIME 500
 
-uint8_t MAPTABLE[MAPPER_FLASHSIZE];// __attribute__((address(0x9d020000), space(fwUpgradeReserved)));    //dummy data
-/*const struct{
+const struct{
     MAPTABLE_HEADER h0;
     MAPTABLE_ENTRY h0e0;
-    MAPTABLE_ENTRY h0e1;
-    MAPTABLE_ENTRY h0e2;
-    MAPTABLE_HEADER h1;
-    MAPTABLE_ENTRY h1e0;
-    MAPTABLE_ENTRY h1e1;
-    MAPTABLE_ENTRY h1e2;
-    MAPTABLE_ENTRY h1e3;
-    MAPTABLE_ENTRY h1e4;
-    MAPTABLE_ENTRY h1e5;
-    MAPTABLE_HEADER h2;
-    MAPTABLE_ENTRY h2e0;
-} MAPTABLE = {.h0 = {.programNumber = 0, .listEntries = 3}, .h1 = {.programNumber = 1, .listEntries = 6}, .h2 = {.programNumber = 2, .listEntries = 1}
-            , .h0e0 = {.startNote = 0, .endNote = 127, .data.VMS_Startblock = &IDLE, .data.flags =     MAP_ENA_DAMPER | MAP_ENA_STEREO | MAP_ENA_VOLUME | MAP_ENA_PITCHBEND | MAP_ENA_PORTAMENTO | MAP_FREQ_MODE, .data.noteFreq = 0, .data.targetOT = 0xff}
-            , .h0e1 = {.startNote = 51, .endNote = 61, .data.VMS_Startblock = &BD_IDLE, .data.flags = MAP_ENA_DAMPER | MAP_ENA_STEREO | MAP_ENA_VOLUME | MAP_ENA_PITCHBEND, .data.noteFreq = 200, .data.targetOT = 0xff}
-            , .h0e2 = {.startNote = 61, .endNote = 127, .data.VMS_Startblock = &IDLE, .data.flags =   MAP_ENA_DAMPER | MAP_ENA_STEREO | MAP_ENA_VOLUME | MAP_ENA_PITCHBEND | MAP_ENA_PORTAMENTO | MAP_FREQ_MODE, .data.noteFreq = 0, .data.targetOT = 0xff}};
-*/
-
-const MAPTABLE_ENTRY MAPPER_DEFMAP = {.data.VMS_Startblock = &DEF_ON, .data.flags = MAP_ENA_DAMPER | MAP_ENA_STEREO | MAP_ENA_VOLUME | MAP_ENA_PITCHBEND | MAP_FREQ_MODE, .data.noteFreq = 0, .data.targetOT = 0xff};
+} DEFMAP = {.h0 = {.programNumber = 0, .listEntries = 1} , .h0e0 = {.startNote = 0, .endNote = 127, .data.VMS_Startblock = &ATTAC, .data.flags = MAP_ENA_DAMPER | MAP_ENA_STEREO | MAP_ENA_VOLUME | MAP_ENA_PITCHBEND | MAP_FREQ_MODE, .data.noteFreq = 0, .data.targetOT = 0xff}};
 
 void MAPPER_map(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel){
     MAPTABLE_DATA * map = MAPPER_getMap(note, channelData[channel].currentMap);
@@ -37,7 +20,7 @@ void MAPPER_map(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel){
     if(map->flags & MAP_FREQ_MODE){
         int16_t currNote = (int16_t) note + map->noteFreq;
         if(currNote > 127 || currNote < 1) return;
-        currNoteFreq = Midi_NoteFreq[currNote];//(( * channelData[channel].bendFactor) / 20000);    //get the required note frequency, including any bender offset
+        currNoteFreq = Midi_NoteFreq[currNote];
     }else{
         currNoteFreq = map->noteFreq;
     }
@@ -62,11 +45,11 @@ void MAPPER_map(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel){
         targetOT /= 127;
     }
     
-    UART_print("OT=%d;freq=%d\r\n", targetOT, currNoteFreq);
-    if(currNoteFreq != 0 && targetOT > 0){
+    //UART_print("OT=%d;freq=%d;ch=%d;voice=%d\r\n", targetOT, currNoteFreq, channel, voice);
+    if(currNoteFreq != 0 && targetOT > Midi_currCoil->minOnTime){
         Midi_voice[voice].currNoteOrigin = channel;
         
-        //TODO fix this...
+        //TODO fix this... (maybe done?)
         Midi_voice[voice].noteAge = 0;
 
         Midi_voice[voice].currNote = note;
@@ -75,7 +58,8 @@ void MAPPER_map(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel){
         Midi_voice[voice].otCurrent = 0;
 
         if(map->flags & MAP_ENA_PORTAMENTO){
-            int32_t differenceFactor = (Midi_voice[voice].freqTarget * 1000) / currNoteFreq;
+            
+            int32_t differenceFactor = (channelData[channel].lastFrequency * 1000) / currNoteFreq;
             if(differenceFactor < 0) differenceFactor = 0;
             if(differenceFactor > 2000000) differenceFactor = 2000000;
             differenceFactor *= 1000;
@@ -84,18 +68,20 @@ void MAPPER_map(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel){
             
             int32_t pTimeTarget = (MAX_PORTAMENTOTIME * channelData[channel].portamentoTime) >> 14;
             
-            UART_print("differenceFactor = %d (%d), pTimeTarget = %d, ", differenceFactor, Midi_voice[voice].freqFactor, pTimeTarget);
+            //UART_print("differenceFactor = %d (from %d to %d) delta=%d, pTimeTarget = %d, ", differenceFactor, Midi_voice[voice].freqTarget, currNoteFreq, (1000000 - differenceFactor), pTimeTarget);
             
             if(pTimeTarget == 0){
                 Midi_voice[voice].portamentoParam = (1000000 - differenceFactor);
             }else{
                 Midi_voice[voice].portamentoParam = (1000000 - differenceFactor) / pTimeTarget;
             }
-            UART_print("portamentoParam = %d\r\n", Midi_voice[voice].portamentoParam);
+            //UART_print("portamentoParam = %d\r\n", Midi_voice[voice].portamentoParam);
         }else{
             Midi_voice[voice].freqFactor = 1000000;
         }
+        
         Midi_voice[voice].freqTarget = currNoteFreq;
+        channelData[channel].lastFrequency = currNoteFreq;
 
         Midi_voice[voice].noiseCurrent = 0;
         Midi_voice[voice].noiseTarget = 400;
@@ -117,22 +103,65 @@ MAPTABLE_DATA * MAPPER_getMap(uint8_t note, MAPTABLE_HEADER * table){
             return &entries[currScan].data;
         }
     }
-    return &MAPPER_DEFMAP.data;
+    return &DEFMAP.h0e0.data;
 }
 
 void MAPPER_programChangeHandler(uint8_t channel, uint8_t program){
+    channelData[channel].currProgramm = program;
     channelData[channel].currentMap = MAPPER_findHeader(program);
 }
 
 MAPTABLE_HEADER * MAPPER_findHeader(uint8_t prog){
-    MAPTABLE_HEADER * currHeader = (MAPTABLE_HEADER *) &MAPTABLE;
-    while(currHeader->listEntries != 0){
+    MAPTABLE_HEADER * currHeader = (MAPTABLE_HEADER *) NVM_mapMem;
+    while(currHeader->listEntries != 0 && currHeader->listEntries != 0xff){
         if(currHeader->programNumber == prog) return currHeader;
         currHeader += sizeof(MAPTABLE_HEADER) + sizeof(MAPTABLE_ENTRY) * currHeader->listEntries;
-        if(((uint32_t) currHeader - (uint32_t) &MAPTABLE) >= 16384) break;
+        if(((uint32_t) currHeader - (uint32_t) NVM_mapMem) >= MAPMEM_SIZE) break;
     }
     //return default maptable
-    return (MAPTABLE_HEADER *) &MAPTABLE;
+    return (MAPTABLE_HEADER *) &DEFMAP;
+}
+
+MAPTABLE_HEADER * cache = 0;
+uint8_t cachedIndex = 0;
+
+MAPTABLE_HEADER * MAPPER_getHeader(uint8_t index){
+    MAPTABLE_HEADER * currHeader = (MAPTABLE_HEADER *) NVM_mapMem;
+    uint8_t currIndex = 0;
+    while(currHeader->listEntries != 0 && currHeader->listEntries != 0xff){
+        if(currIndex == index){
+            UART_print("CACHED ENTRY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\r\n");
+            cache = currHeader;
+            cachedIndex = index;
+            return currHeader;
+        }
+        currHeader += sizeof(MAPTABLE_HEADER) + sizeof(MAPTABLE_ENTRY) * currHeader->listEntries;
+        currIndex ++;
+        if(((uint32_t) currHeader - (uint32_t) NVM_mapMem) >= MAPMEM_SIZE) break;
+    }
+    return 0;
+}
+
+MAPTABLE_ENTRY * MAPPER_getEntry(uint8_t header, uint8_t index){
+    MAPTABLE_HEADER * table;
+    if(cachedIndex == header && cache != 0){
+        table = cache;
+        UART_print("found matching cache entry!\r\n");
+    }else{
+        table = MAPPER_getHeader(header);
+        UART_print("loading header with index %d\r\n", header);
+    }
+    
+    UART_print("scanning %d for %d (max = %d)\r\n", header, index, table->listEntries);
+    
+    MAPTABLE_ENTRY * entries = (MAPTABLE_ENTRY *) ((uint32_t) table + sizeof(MAPTABLE_HEADER));
+    uint8_t currScan = 0;
+    for(currScan = 0; currScan < table->listEntries; currScan++){
+        if(currScan == index){
+            return &entries[currScan];
+        }
+    }
+    return 0;
 }
 
 void MAPPER_volumeHandler(uint8_t channel){
@@ -184,7 +213,7 @@ void MAPPER_bendHandler(uint8_t channel){
             }else{
                 currNoteFreq = map->noteFreq;
             }
-            if(map->flags & MAP_ENA_PITCHBEND) currNoteFreq = ((currNoteFreq * channelData[channel].bendFactor) / 20000); else currNoteFreq *= 10;
+            currNoteFreq = ((currNoteFreq * channelData[channel].bendFactor) / 20000);
             
             Midi_voice[currChannel].freqTarget = currNoteFreq;
             Midi_voice[currChannel].freqCurrent = ((Midi_voice[currChannel].freqTarget >> 4) * Midi_voice[currChannel].freqFactor) / 62500;  //62500 is 1000000 >> 4
@@ -194,3 +223,9 @@ void MAPPER_bendHandler(uint8_t channel){
     }
 }
 
+void MAPPER_handleMapWrite(){
+    uint8_t currChannel = 0;
+    for(currChannel = 0; currChannel < 16; currChannel++){
+        MAPPER_programChangeHandler(currChannel, channelData[currChannel].currProgramm);
+    }
+}

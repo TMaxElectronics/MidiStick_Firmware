@@ -6,8 +6,6 @@
 #include "MidiController.h"
 
 #define VMS_DIE 0xdeadbeef
-#define VMS_THRESHOLD_FALLING 0
-#define VMS_THRESHOLD_RISING 1
 #define VMS_PREVIEW_MEMSIZE 15000
 
 extern DLLObject * VMS_listHead;
@@ -27,6 +25,7 @@ int32_t VMS_getCurrentFactor(KNOWN_VALUE ID, SynthVoice * voice);
 void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice);
 int32_t VMS_getKnownValue(KNOWN_VALUE ID, SynthVoice * voice);
 void VMS_resetVoice(SynthVoice * voice, VMS_BLOCK * startBlock);
+int32_t VMS_getParam(VMS_BLOCK * block, SynthVoice * voice, uint8_t param);
 void VMS_run();
 void VMS_init();
 

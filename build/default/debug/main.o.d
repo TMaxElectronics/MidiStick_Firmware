@@ -14,4 +14,5 @@ ConfigManager.h  \
 types.h  \
  UART32.h  \
 DLL.h  \
-ADSREngine.h 
+ADSREngine.h  \
+HIDController.h 

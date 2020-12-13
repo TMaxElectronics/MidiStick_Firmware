@@ -65,13 +65,14 @@ typedef struct {
 
 //this is where the configuration info is saved
 typedef struct {
-    MidiProgramm programm[128]; 
     CoilConfig coils[32];
     CFGData cfg;
     USBDevNameHeader devName;
 } CONF;
 
 extern const volatile CONF ConfigData; 
+extern const volatile uint8_t NVM_mapMem[];
+extern const volatile uint8_t NVM_blockMem[];
 
 //read and write for programm data
 unsigned NVM_readProgrammConfig(MidiProgramm * dest, uint8_t index);    //reads config from NVM (Non Volatile Memory) to ram

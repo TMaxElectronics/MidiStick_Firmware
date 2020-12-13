@@ -44,8 +44,6 @@ void * lastData = 0;
 
 void VMS_init(){
     VMS_listHead = createNewDll();
-    VMSBLOCKS = malloc(15000);
-    if(VMSBLOCKS == 0) UART_sendString("fuck                            dsfhgdfshgtfhhnfghzjmngzh", 1);
     UART_print("ATTAC       is at 0x%08x\r\n", &ATTAC);
     //UART_print("DECAY       is at 0x%08x\r\n", &DECAY);
     //UART_print("SUSTAIN     is at 0x%08x\r\n", &SUSTAIN);
@@ -82,11 +80,11 @@ void VMS_run(){
     
 }
 
-uint32_t SYS_timeSince(uint32_t start){
+inline uint32_t SYS_timeSince(uint32_t start){
     return (_CP0_GET_COUNT() - start) / 24;
 }
 
-uint32_t SYS_getTime(){
+inline uint32_t SYS_getTime(){
     return _CP0_GET_COUNT();
 }
 
@@ -139,6 +137,8 @@ int32_t VMS_getKnownValue(KNOWN_VALUE ID, SynthVoice * voice){
             return voice->freqFactor;
         case pTime:
             return voice->portamentoParam;
+        case circ1:
+            return voice->circ1;
     }
     return 0;
 }
@@ -151,7 +151,7 @@ void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice){
             
         case otCurrent:
             voice->otCurrent = value;
-            return;
+            break;
         case onTime:
             if(value == 0){
                 voice->otFactor = 0;
@@ -161,14 +161,11 @@ void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice){
                 voice->otCurrent = (voice->otTarget * value) / 1000000 + Midi_currCoil->minOnTime;
                 //UART_print("OT is now %d", Midi_voice[0].otCurrent);
             }
-            SigGen_limit();
-            return;
+            break;
         case freqCurrent:
             voice->freqCurrent = value;
             voice->periodCurrent = 1000000 / value;
-            SigGen_limit();
-            
-            return;
+            break;
         case frequency:
             voice->freqFactor = value;
             //UART_print("factor target = %d;  ", value);
@@ -178,15 +175,27 @@ void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice){
             //UART_print("value = %d;  \r\n", voice->freqCurrent);       //we need to pre scale the factor to prevent 32bit integer overflow
             
             SigGen_setNoteTPR(voice->id, voice->freqCurrent);
-            return;
-            
+            break;
         case noise:
             voice->noiseFactor = value;
             voice->noiseCurrent = (voice->noiseTarget * value) / 1000000;
-            SigGen_limit();
-            return;
+            break;
+        case circ1:
+            voice->circ1 = value / 1000;
+            //UART_print("circ=%d (%d)\r\n", voice->circ1, value);
+            break;
     }
-    return ;
+    SigGen_limit();
+}
+
+int32_t VMS_getParam(VMS_BLOCK * block, SynthVoice * voice, uint8_t param){
+    switch(param){
+        case 1:
+            return (block->param1 > 0 && block->param1 < KNOWNVAL_MAX) ? VMS_getKnownValue(block->param1, voice) : block->param1;
+        case 2:
+            return (block->param2 > 0 && block->param2 < KNOWNVAL_MAX) ? VMS_getKnownValue(block->param2, voice) : block->param2;
+    }
+    return 0;
 }
 
 int32_t VMS_getCurrentFactor(KNOWN_VALUE ID, SynthVoice * voice){
@@ -199,22 +208,18 @@ int32_t VMS_getCurrentFactor(KNOWN_VALUE ID, SynthVoice * voice){
             return voice->freqFactor;
         case noise:
             return voice->noiseFactor;
+        case circ1:
+            return voice->circ1 * 1000;
     }
+    return 0;
 }
 
-unsigned VMS_hasReachedThreshold(VMS_BLOCK * block, int32_t factor, unsigned customDirection){
-    switch(block->thresholdDirection){
+unsigned VMS_hasReachedThreshold(VMS_BLOCK * block, int32_t factor, DIRECTION customDirection){
+    switch(customDirection){
         case RISING:
             return factor >= block->targetFactor;
         case FALLING:
             return factor <= block->targetFactor;
-        case ANY:
-            //UART_print("from %d to %d (%s)\r\n", factor, block->targetFactor, (customDirection == VMS_THRESHOLD_FALLING) ? "falling" : "rising");
-            if(customDirection == VMS_THRESHOLD_RISING){
-                return factor >= block->targetFactor;
-            }else{
-                return factor <= block->targetFactor;
-            }
         case NONE:
             return 0;
     }
@@ -257,8 +262,41 @@ void VMS_addBlockToList(VMS_BLOCK * block, SynthVoice * voice){
     data->period = block->period;
     data->nextRunTime = SYS_getTime();
     
-    data->thresholdDirection = (block->targetFactor < VMS_getCurrentFactor(block->target, voice)) ? VMS_THRESHOLD_FALLING : VMS_THRESHOLD_RISING;
-    //UART_print("tfrom %d to %d (%s)\r\n", VMS_getCurrentFactor(block->target, voice), block->targetFactor, (data->thresholdDirection == VMS_THRESHOLD_FALLING) ? "falling" : "rising");
+    int32_t param1 = VMS_getParam(block, voice, 1);
+    
+    switch(block->type){
+        case VMS_EXP:
+            if(param1 > 1000){
+                data->thresholdDirection = RISING;
+            }else{
+                data->thresholdDirection = FALLING;
+            }
+            //UART_print("exp: param = %d => %s\r\n", param1, (data->thresholdDirection == RISING) ? "rising" : "falling");
+            break;
+        case VMS_EXP_INV:
+            if(param1 > 1000){
+                data->thresholdDirection = FALLING;
+            }else{
+                data->thresholdDirection = RISING;
+            }
+            break;
+        case VMS_LIN:
+            if(param1 > 0){
+                data->thresholdDirection = RISING;
+            }else{
+                data->thresholdDirection = FALLING;
+            }
+            //UART_print("LIN: param = %d => %s\r\n", param1, (data->thresholdDirection == RISING) ? "rising" : "falling");
+            break;
+        case VMS_SIN:
+            data->thresholdDirection = NONE;
+            break;
+        default:
+            data->thresholdDirection = (block->targetFactor < VMS_getCurrentFactor(block->target, voice)) ? FALLING : RISING;
+            //UART_print("tfrom %d to %d (%s)\r\n", VMS_getCurrentFactor(block->target, voice), block->targetFactor, (data->thresholdDirection == FALLING) ? "falling" : "rising");
+            break;
+    }
+    
     
     switch(block->type){
         case VMS_SIN:
@@ -308,18 +346,36 @@ unsigned VMS_calculateValue(VMS_listDataObject * data){
     int32_t param1 = (block->param1 > 0 && block->param1 < KNOWNVAL_MAX) ? VMS_getKnownValue(block->param1, voice) : block->param1;
     int32_t param2 = (block->param2 > 0 && block->param2 < KNOWNVAL_MAX) ? VMS_getKnownValue(block->param2, voice) : block->param2;
     
+    /*if(block->param1 > 0 && block->param1 < KNOWNVAL_MAX){
+        UART_print("getting %d\r\n", block->param1);
+    }*/
+    
     int32_t currFactor = VMS_getCurrentFactor(block->target, voice);
     
     SINE_DATA * d = (SINE_DATA *) data->data;
+    int32_t currFactorDiff;
     
     switch(block->type){
-        case VMS_EXP_INV:   //TODO... maths is hard :(
         case VMS_EXP:
             if(param1 > 1000 && currFactor < 1000){
                 currFactor = 1000;
             }
             currFactor = (currFactor * param1) / 1000;
+            if(currFactor < 10000){
+                currFactor = 0;
+            }
+            
             break;
+            
+        case VMS_EXP_INV:
+            currFactorDiff = abs(block->targetFactor - currFactor);
+            currFactorDiff = (currFactorDiff * param1) / 1000;
+            if(currFactorDiff < 10000){
+                currFactorDiff = 0;
+            }
+            currFactor = block->targetFactor - currFactorDiff;
+            break;
+            
         case VMS_LIN:
             currFactor += param1;
             //if(block->target == frequency) UART_print("frequency lin: factor = %d, param1 = %d\r\n", currFactor, param1);

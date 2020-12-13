@@ -45,6 +45,7 @@
 #include "ConfigManager.h"
 #include "DLL.h"
 #include "ADSREngine.h"
+#include "HIDController.h"
 
 void initIO();
 void initUSB();
@@ -77,8 +78,6 @@ void main(void) {
     UART_sendString("\r\nBootloader V", 0); UART_sendString(blVer, 1);
     UART_sendString("Serial number: ", 0); UART_sendInt(NVM_getSerialNumber(), 1);
     free(blVer);
-    
-    
     
     /* This is a workaround for a glitch in the V1.1 bootloader that caused the opto-transmitter to turn on for one second during initialisation.
      * How does this dirty fix work? 
@@ -126,6 +125,18 @@ void main(void) {
         USBDeviceTasks();
         Midi_run();
         VMS_run();
+        
+        if(HID_erasePending){
+            NVM_erasePage(HID_currErasePage);
+            HID_currErasePage += PAGE_SIZE;
+            if(HID_currErasePage > NVM_blockMem + BLOCKMEM_SIZE){
+                UART_sendString("Erase done!", 1);
+                HID_erasePending = 0;
+            }else{
+                UART_sendString("pe", 1);
+            }
+        }
+        
         //if(_CP0_GET_COUNT() - lastRun > 240000){
         //    lastRun = _CP0_GET_COUNT();
         //    UART_print("voice 2: OT = %d, freq = %d TMR = %d PR = %d (%s)\r\n", Midi_voice[1].otCurrent, Midi_voice[1].freqCurrent, TMR3, PR3, (T3CON & _T2CON_ON_MASK) ? "on" : "off");

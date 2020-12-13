@@ -1,4 +1,3 @@
-
 #include <stdint.h>
 #include <math.h>
 #include <stdlib.h>
@@ -79,19 +78,6 @@ void Midi_init(){
     
     VMS_init();
     
-    /*
-     * What the hell is a NoteManager supposed to do??
-     * 
-     * Well, I am still experimenting with a proper decision algorithm to select the notes to be played
-     * The notemanager keeps track of all the notes that are supposed to be playing at the moment
-     * 
-     * It is not used right now, so technically I could remove it, but it is a very hand tool to check if midi files exceed the available number of voices, and doesn't really
-     * use too much CPU time, so I'll leave it here until it causes trouble :D
-     */
-    
-    //load default values
-    NVM_readProgrammConfig(Midi_currOverrideProgramm, 0xff);
-    
     uint8_t currChannel = 0;
     for(;currChannel < 16; currChannel++){ 
         channelData[currChannel].currVolume = 127;
@@ -108,7 +94,7 @@ void Midi_init(){
     halfLimit = (Midi_currCoil->ontimeLimit * 100) / 266;
     otLimit = (Midi_currCoil->ontimeLimit * 100) / 133;
     
-    //random s(l)ee(t), used for the noise source
+    //random s(1)ee(7), used for the noise source
     srand(1337);
     
     //get note timers ready
@@ -135,11 +121,9 @@ void Midi_SOFHandler(){
     
     uint8_t currVoice = 0;
     for(;currVoice < MIDI_VOICECOUNT; currVoice++){
-        //anyNoteOn |= ADSR_doNoteCalculation(&Midi_voice[currVoice]);
+        anyNoteOn |= Midi_voice[currVoice].otFactor > 0;
+        Midi_voice[currVoice].noteAge ++;
     }
-    
-    //turn on the duty limiter indicator, if it is on
-    Midi_LED(LED_DUTY_LIMITER, (accumulatedOnTime < halfLimit) ? LED_OFF : LED_ON);
     
     
     //Turn the note on LED on if any voices are active, and the E_STOP is closed (or disabled)
@@ -196,10 +180,10 @@ void Midi_run(){
                 
             }else if(cmd == MIDI_CMD_NOTE_ON){
                 
-                if(ReceivedDataBuffer[3] > 0 && channelData[channel].currStereoVolume > 0){  //velocity is > 0 -> turn note on
+                if(ReceivedDataBuffer[3] > 0){  //velocity is > 0 -> turn note on && channelData[channel].currStereoVolume > 0
                     //add note to the list with its velocity
                     
-                    UART_sendString("noteon: ", 0); UART_sendInt(ReceivedDataBuffer[2], 0); UART_sendString(" @ ", 0); UART_sendInt(channel, 1);
+                    //UART_sendString("noteon: ", 0); UART_sendInt(ReceivedDataBuffer[2], 0); UART_sendString(" @ ", 0); UART_sendInt(channel, 1);
                     
                     //decide which voice should play the new note
                     uint8_t currVoice = 0;
@@ -208,7 +192,7 @@ void Midi_run(){
                     for(;currVoice < MIDI_VOICECOUNT; currVoice++){
                         if(Midi_voice[currVoice].currNote == ReceivedDataBuffer[2] && Midi_voice[currVoice].currNoteOrigin == channel){
                             MAPPER_map(currVoice, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                            UART_sendString("\tskip", 1);
+                            //UART_sendString("\tskip", 1);
                             skip = 1;
                             break;
                         }
@@ -224,14 +208,40 @@ void Midi_run(){
                             MAPPER_map(2, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
                         }else if(Midi_isNoteOff(3)){
                             MAPPER_map(3, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                            
+                            
+                        }else if(Midi_isNoteDecaying(0)){
+                            MAPPER_map(0, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                        }else if(Midi_isNoteDecaying(1)){ 
+                            MAPPER_map(1, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                        }else if(Midi_isNoteDecaying(2)){          
+                            MAPPER_map(2, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                        }else if(Midi_isNoteDecaying(3)){
+                            MAPPER_map(3, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                            
+                            
                         }else{
-                            UART_sendString("overwrite", 1);
-                            uint8_t oldestAge = Midi_voice[0].noteAge;
-                            uint8_t oldestIndex = 0;
-                            if(Midi_voice[1].noteAge > oldestAge){ oldestAge = Midi_voice[1].noteAge; oldestIndex = 1; }
-                            if(Midi_voice[2].noteAge > oldestAge){ oldestAge = Midi_voice[2].noteAge; oldestIndex = 2; }
-                            if(Midi_voice[3].noteAge > oldestAge){ oldestAge = Midi_voice[3].noteAge; oldestIndex = 3; }
-                            MAPPER_map(oldestIndex, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                            
+                            //UART_print("overwrite: ot[0]=%d, ot[1]=%d, ot[2]=%d, ot[3]=%d", Midi_voice[0].otCurrent, Midi_voice[1].otCurrent, Midi_voice[2].otCurrent, Midi_voice[3].otCurrent);
+                            
+                            uint32_t oldestAge = 0;
+                            uint8_t i = 0;
+                            for(; i < MIDI_VOICECOUNT; i++){
+                                if(Midi_voice[i].noteAge > oldestAge) oldestAge = Midi_voice[i].noteAge;
+                            }
+                            
+                            if(Midi_voice[0].noteAge == oldestAge){ 
+                                MAPPER_map(0, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                                
+                            }else if(Midi_voice[1].noteAge == oldestAge){ 
+                                MAPPER_map(1, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                                
+                            }else if(Midi_voice[2].noteAge == oldestAge){ 
+                                MAPPER_map(2, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                                
+                            }else if(Midi_voice[3].noteAge == oldestAge){ 
+                                MAPPER_map(3, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
+                            }
                         }
                     }
                     
@@ -273,7 +283,7 @@ void Midi_run(){
                         channelData[currChannel].currStereoPosition = 64;
                         channelData[currChannel].currVolumeModifier = 32385;
                     }
-                    UART_sendString("off", 1);
+                    //UART_sendString("off", 1);
                     //enable NVM operations again
                     Midi_safe = 1;
                     
@@ -618,7 +628,7 @@ void Midi_run(){
                     NVM_eraseFWUpdate();
                     memset(ToSendDataBuffer, 0, 64);
                     //inform the software that the erase operation is complete, this is necessary as flash erase speed is relatively slow and not consistent enough to just use a wait in the software after writing one packet
-                     ToSendDataBuffer[0] = USB_CMD_FWUPDATE_ERASE;
+                    ToSendDataBuffer[0] = USB_CMD_FWUPDATE_ERASE;
                     Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
                     
                 }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_COMMIT){   //write the appropriate value to the fwStatus byte, to tell the bootloader we mean business ;)
@@ -639,6 +649,7 @@ void Midi_run(){
                     
                 }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_START_BULK_WRITE){ //prepare to receive civil judgment, wait no we prepare to receive packet data
                     payload = malloc(PAGE_SIZE);
+                    if(payload == 0) UART_print("nope we need more ram :(\r\n");
                     FWUpdate_currPLOffset = 0;
                     currPage = (ConfigReceivedDataBuffer[1] << 8) | (ConfigReceivedDataBuffer[2]);
                     
@@ -658,12 +669,16 @@ void Midi_run(){
 }
 
 unsigned Midi_isNoteOff(uint8_t voice){
-    return Midi_voice[voice].on == 0;
+    return (Midi_voice[voice].otCurrent < 10) && !Midi_voice[voice].on;
+}
+
+unsigned Midi_isNoteDecaying(uint8_t voice){
+    return !Midi_voice[voice].on;
 }
 
 void Midi_NoteOff(uint8_t voice, uint8_t channel){
     Midi_voice[voice].currNote = 0xff;
-    UART_print("note off on voice %d\r\n", voice);
+    //UART_print("note off on voice %d\r\n", voice);
     Midi_voice[voice].on = 0;
 }
 

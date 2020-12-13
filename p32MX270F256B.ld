@@ -117,8 +117,8 @@ _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
 
 MEMORY
 {
-  fwUpgradeReserved     (rx)  : ORIGIN = 0x9D020000, LENGTH = 0x1F000
-  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000BF0, LENGTH = 0x3D410
+  fwUpgradeReserved     (rx)  : ORIGIN = 0x9D020000, LENGTH = 0x20000
+  kseg0_program_mem     (rx)  : ORIGIN = 0x9D000BF0, LENGTH = 0x1F410
   exception_mem               : ORIGIN = 0x9D03F000, LENGTH = 0x1000
   debug_exec_mem              : ORIGIN = 0x9D000490, LENGTH = 0x760
   kseg0_boot_mem              : ORIGIN = 0x9D000490, LENGTH = 0x0

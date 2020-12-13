@@ -49,9 +49,9 @@ void SigGen_setNoteTPR(uint8_t voice, uint16_t freqTenths){
     if(freqTenths != 0) divVal = 1875000 / freqTenths;
     
     Midi_voice[voice].periodCurrent = divVal;
+    Midi_voice[voice].freqCurrent = freqTenths;
     
     SigGen_maxOTScaled = (Midi_currCoil->maxOnTime * 100) / 133;
-    
     //turn off the timer if the frequency is too low, otherwise set the scaler register to the appropriate value
     switch(voice){
         case 0:
@@ -107,26 +107,30 @@ void SigGen_setNoteTPR(uint8_t voice, uint16_t freqTenths){
     SigGen_limit();
 }
 
+
+uint8_t outCounter = 0;
 void SigGen_limit(){
     uint32_t totalDuty = 0;
     uint32_t scale = 1000;
     
     uint8_t c = 0;
     for(; c < MIDI_VOICECOUNT; c++){
-        totalDuty += (Midi_voice[c].otCurrent * Midi_voice[c].freqCurrent) / 10;
+        totalDuty += (Midi_voice[c].otCurrent * Midi_voice[c].freqCurrent) / 10; //TODO preemtively increase the frequency used for calculation if noise is on
     }
     
     if(totalDuty > 10000 * Midi_currCoil->maxDuty){
         scale = (10000000 * Midi_currCoil->maxDuty) / totalDuty;
+        Midi_LED(LED_DUTY_LIMITER, LED_ON);
     }else{
         scale = 1000;
+        Midi_LED(LED_DUTY_LIMITER, LED_OFF);
     }
     
     for(c = 0; c < MIDI_VOICECOUNT; c++){
         Midi_voice[c].outputOT = (Midi_voice[c].otCurrent * scale) / 1330;
     }
     
-    //UART_print("OT[0]: totalDuty = %d, scale = %d, OT = %d\r\n", totalDuty / 10000, scale, Midi_voice[0].outputOT);
+    //if(!outCounter++) UART_print("OT[0]: totalDuty = %d, scale = %d, OT = %d\r\n", totalDuty / 10000, scale, Midi_voice[0].outputOT);
 }   
 
 /*
@@ -176,8 +180,6 @@ inline void SigGen_timerHandler(uint8_t voice){
     
     uint16_t otLimit = Midi_currCoil->ontimeLimit * 4;
     
-    //uint16_t nextOT = Midi_voice[voice].otCurrent;
-    
     if(Midi_voice[voice].noiseCurrent > 0){
         int32_t nextPeriod = Midi_voice[voice].periodCurrent + (rand() / (RAND_MAX / Midi_voice[voice].noiseCurrent)) - (Midi_voice[voice].noiseCurrent >> 1);
         if(nextPeriod > 10){
@@ -202,51 +204,6 @@ inline void SigGen_timerHandler(uint8_t voice){
             }
         }
     }
-    /*
-    //TODO: add handling of the different timer modes
-    
-    //calculate the time for which the output was off (in microseconds). Core-Timer frequency = 24MHz ; target Frequency (for a 1us period) = 1MHz -> divisor = 24
-    uint32_t timeSinceNoteOff = (_CP0_GET_COUNT() - SigGen_noteOffTime) / 24;
-    
-    //check if we are still within the holdoff time
-    if(timeSinceNoteOff < Midi_currCoil->holdoffTime) return;
-    
-    //reduce the accumulated on-time by the duration for which the note was off
-    if(timeSinceNoteOff <= 10000){     //we will never have an accumulated on time of over 10ms, so if the time since the last falling edge is larger we just set the integrated value to zero
-    
-        SigGen_accumulatedOT -= (timeSinceNoteOff * Midi_currCoil->maxDuty) / 100;  //we limit the rate at which the accumulator gets reduced by the value of the duty cycle
-        if(SigGen_accumulatedOT < 0) SigGen_accumulatedOT = 0;
-                
-    }else{
-        SigGen_accumulatedOT = 0;
-    }
-    
-    if(SigGen_accumulatedOT >= otLimit) return;
-            
-    //check if we would exceed the maximums with this pulse
-    
-    uint32_t maximumUnlimitedOT;
-    if(SigGen_accumulatedOT > otLimit > 1){
-        maximumUnlimitedOT = (otLimit - SigGen_accumulatedOT) > 1;
-    } else maximumUnlimitedOT = otLimit;
-    
-    uint16_t actualOT = 0;
-    
-    if(nextOT > maximumUnlimitedOT){    //yes we would exceed them => set the OT to the maximum still possible without doing so
-        actualOT = maximumUnlimitedOT;  
-    }else{                              //no the value is low enough => don't scale anything
-        actualOT = nextOT;
-    }
-    
-    //at this point the actualOT cannot exceed any of the limits, but since this is a critical safety feature we'll check it again
-    if(actualOT < Midi_currCoil->minOnTime || actualOT > Midi_currCoil->maxOnTime) return;
-    if(actualOT < SIGGEN_MIN_MINOT) return;
-    
-    //we have now got the next on time. Now we add it to the accumulator to compute the integral of the pulse
-    SigGen_accumulatedOT += actualOT;
-    //this counter cannot overflow the maximum value because the maximum on time at this point is the difference between the accumulator value and the maximum. So adding the two together cannot exceed the maximum.
-    */
-    //convert the on time value in us to counts of the timer register, reset the timer count register and start the timer. 
     
     if(Midi_voice[voice].outputOT == 0 || Midi_voice[voice].outputOT > SigGen_maxOTScaled) return;
     
