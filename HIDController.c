@@ -204,31 +204,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             VMS_BLOCK * buff = malloc(sizeof(VMS_BLOCK));
             VMS_BLOCK * cb = &(((VMS_BLOCK*) NVM_blockMem)[currBlock]);//(VMS_BLOCK *) (NVM_blockMem + currBlock * sizeof(VMS_BLOCK));
             UART_print("Read valid block[%d]. UID is 0x%08x\r\n", currBlock, cb->uid);
-            memcpy(buff, cb, sizeof
-            free(HID_currMapHeader);
-            HID_currMapHeader = 0;            
-            output[0] = 1;
-        }
-        
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
-        
-    }else if(input[0] == USB_MAP_ENDALL){        
-        output[0] = 0;
-        if(HID_currMapBuffer != 0){
-            UART_print("writing maptable to flash\r\n"); 
-            NVM_memclr4096(NVM_mapMem, MAPMEM_SIZE);
-            NVM_memcpy128(NVM_mapMem, HID_currMapBuffer, MAPMEM_SIZE);      
-            free(HID_currMapBuffer);
-            HID_currMapBuffer = 0;  
-            output[0] = 1;
-            MAPPER_handleMapWrite();
-        }
-        
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
-    }else if(input[0] == USB_VMS_READ_BLOCK){  
-        uint16_t currBlock = input[1] | (input[2] << 8) | (input[3] << 16) | (input[4] << 24);
-        output[0] = USB_VMS_READ_BLOCK;
-        (VMS_BLOCK));
+            memcpy(buff, cb, sizeof(VMS_BLOCK));
             VMS_unlink(buff);
             memcpy(&output[1], buff, 63);
             free(buff);

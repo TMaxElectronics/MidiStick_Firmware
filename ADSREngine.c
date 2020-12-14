@@ -44,19 +44,6 @@ void * lastData = 0;
 
 void VMS_init(){
     VMS_listHead = createNewDll();
-    UART_print("ATTAC       is at 0x%08x\r\n", &ATTAC);
-    //UART_print("DECAY       is at 0x%08x\r\n", &DECAY);
-    //UART_print("SUSTAIN     is at 0x%08x\r\n", &SUSTAIN);
-    //UART_print("RELEASE     is at 0x%08x\r\n", &RELEASE);
-    //UART_print("IDLE        is at 0x%08x\r\n", &IDLE);
-    //UART_print("NATTAC      is at 0x%08x\r\n", &NATTAC);
-    //UART_print("NSUS        is at 0x%08x\r\n", &NSUS);
-    //UART_print("NRELEASE    is at 0x%08x\r\n", &NRELEASE);
-    //UART_print("ADECAY      is at 0x%08x\r\n", &ADECAY);
-    //UART_print("FDECAY      is at 0x%08x\r\n", &FDECAY);
-    //UART_print("IDLE2       is at 0x%08x\r\n", &IDLE2);
-    //UART_print("SNAPON      is at 0x%08x\r\n", &SNAPON);
-    //UART_print("SNAPFREQ    is at 0x%08x\r\n", &SNAPFREQ);
 }
 
 void VMS_run(){
@@ -181,7 +168,7 @@ void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice){
             voice->noiseCurrent = (voice->noiseTarget * value) / 1000000;
             break;
         case circ1:
-            voice->circ1 = value / 1000;
+            voice->circ1 = value;
             //UART_print("circ=%d (%d)\r\n", voice->circ1, value);
             break;
     }
@@ -209,7 +196,7 @@ int32_t VMS_getCurrentFactor(KNOWN_VALUE ID, SynthVoice * voice){
         case noise:
             return voice->noiseFactor;
         case circ1:
-            return voice->circ1 * 1000;
+            return voice->circ1;
     }
     return 0;
 }
@@ -386,6 +373,7 @@ unsigned VMS_calculateValue(VMS_listDataObject * data){
             if(d->currCount > 0xff) d->currCount = -0xff;
             currFactor = ((param1 * qSin(d->currCount)) / 1000);
             currFactor += param2;
+            if(currFactor < 0) currFactor = 0;
             break;
         case VMS_JUMP:
             currFactor = block->targetFactor;

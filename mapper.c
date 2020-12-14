@@ -42,7 +42,8 @@ void MAPPER_map(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel){
     
     if(map->flags & MAP_ENA_VOLUME){
         targetOT *= channelData[channel].currVolume;
-        targetOT /= 127;
+        targetOT *= velocity;
+        targetOT /= 16129;
     }
     
     //UART_print("OT=%d;freq=%d;ch=%d;voice=%d\r\n", targetOT, currNoteFreq, channel, voice);
@@ -84,7 +85,7 @@ void MAPPER_map(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel){
         channelData[channel].lastFrequency = currNoteFreq;
 
         Midi_voice[voice].noiseCurrent = 0;
-        Midi_voice[voice].noiseTarget = 400;
+        Midi_voice[voice].noiseTarget = 80;
         Midi_voice[voice].noiseFactor = 0;
 
         SigGen_setNoteTPR(voice, currNoteFreq);
