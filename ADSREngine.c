@@ -361,7 +361,8 @@ unsigned VMS_calculateValue(VMS_listDataObject * data){
                 currFactor = 1000;
             }
             currFactor = (currFactor * param1) / 1000;
-            if(currFactor < 10000){
+            
+            if(param1 < 1000 && currFactor < 1000){
                 currFactor = 0;
             }
             

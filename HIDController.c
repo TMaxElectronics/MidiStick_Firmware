@@ -61,11 +61,12 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         
     }else if(input[0] == USB_CMD_VMS_WRITEBLOCK){
         if(VMS_currWriteBuffer == 0){
-            UART_print("allocated blockBuffer\r\n");
             VMS_currWriteBuffer = malloc(VMS_RAMSIZE);
+            UART_print("allocated blockBuffer 0x%08x\r\n", VMS_currWriteBuffer);
             memset(VMS_currWriteBuffer, 0, VMS_RAMSIZE);
             lastVMSBlock = 0;
             VMS_currWriteOffset = (void*) VMS_findFreeSpace();
+            UART_print("new Offset = 0x%08x\r\n", VMS_currWriteOffset);
         }
         
         if(!(lastVMSBlock < VMS_RAMSIZE / sizeof(VMS_BLOCK))){
@@ -116,10 +117,11 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             free(HID_currMapHeader);
             HID_currMapHeader = 0;
         }
+        
         if(HID_currMapBuffer == 0){
             HID_currMapBuffer = malloc(MAPMEM_SIZE);
-            memset(HID_currMapBuffer, 0, MAPMEM_SIZE);
         }
+        memset(HID_currMapBuffer, 0, MAPMEM_SIZE);
         
     }else if(input[0] == USB_MAP_STARTWRITE){
         if(HID_currMapHeader != 0){
@@ -186,7 +188,9 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         if(HID_currMapBuffer != 0){
             UART_print("writing maptable to flash\r\n"); 
             NVM_memclr4096(NVM_mapMem, MAPMEM_SIZE);
-            NVM_memcpy128(NVM_mapMem, HID_currMapBuffer, MAPMEM_SIZE);        
+            NVM_memcpy128(NVM_mapMem, HID_currMapBuffer, MAPMEM_SIZE);      
+            free(HID_currMapBuffer);
+            HID_currMapBuffer = 0;  
             output[0] = 1;
             MAPPER_handleMapWrite();
         }
@@ -200,7 +204,31 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             VMS_BLOCK * buff = malloc(sizeof(VMS_BLOCK));
             VMS_BLOCK * cb = &(((VMS_BLOCK*) NVM_blockMem)[currBlock]);//(VMS_BLOCK *) (NVM_blockMem + currBlock * sizeof(VMS_BLOCK));
             UART_print("Read valid block[%d]. UID is 0x%08x\r\n", currBlock, cb->uid);
-            memcpy(buff, cb, sizeof(VMS_BLOCK));
+            memcpy(buff, cb, sizeof
+            free(HID_currMapHeader);
+            HID_currMapHeader = 0;            
+            output[0] = 1;
+        }
+        
+        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        
+    }else if(input[0] == USB_MAP_ENDALL){        
+        output[0] = 0;
+        if(HID_currMapBuffer != 0){
+            UART_print("writing maptable to flash\r\n"); 
+            NVM_memclr4096(NVM_mapMem, MAPMEM_SIZE);
+            NVM_memcpy128(NVM_mapMem, HID_currMapBuffer, MAPMEM_SIZE);      
+            free(HID_currMapBuffer);
+            HID_currMapBuffer = 0;  
+            output[0] = 1;
+            MAPPER_handleMapWrite();
+        }
+        
+        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+    }else if(input[0] == USB_VMS_READ_BLOCK){  
+        uint16_t currBlock = input[1] | (input[2] << 8) | (input[3] << 16) | (input[4] << 24);
+        output[0] = USB_VMS_READ_BLOCK;
+        (VMS_BLOCK));
             VMS_unlink(buff);
             memcpy(&output[1], buff, 63);
             free(buff);
@@ -237,7 +265,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         output[0] = USB_MAP_READ_ENTRY;
         
         if(currHeader < 127 && currEntry < 127){
-            UART_print("Read valid map entry %d from header %d\r\n", currEntry, currHeader);
+            UART_print("Read valid map entry %d from header %d\r\n", currEntry, currHeader); 
             MAPTABLE_ENTRY * entry = MAPPER_getEntry(currHeader, currEntry);
             if(entry != 0){
                 UART_print("Read valid map entry: 0x%08x, startblock = 0x%08x\r\n", entry, entry->data.VMS_Startblock);
@@ -280,8 +308,26 @@ void VMS_writeRamList(){
         VMS_currWriteOffset = (void*) VMS_findFreeSpace();
     }
     
-    NVM_erasePage((void*) VMS_currWriteOffset);
-    NVM_memcpy128((void*) VMS_currWriteOffset, VMS_currWriteBuffer, VMS_RAMSIZE);
+    NVM_memcpy4(VMS_currWriteOffset, VMS_currWriteBuffer, lastVMSBlock * sizeof(VMS_BLOCK));
+    
+    /*uint32_t currPageStart = ((uint32_t) VMS_currWriteOffset / PAGE_SIZE) * PAGE_SIZE;
+    if(currPageStart != VMS_currWriteOffset){
+        
+        UART_sendString("We need to append!", 1);
+        uint32_t offset = ((uint32_t) VMS_currWriteOffset - currPageStart);
+        uint8_t * buff = malloc(VMS_RAMSIZE + PAGE_SIZE);
+        memset(buff + VMS_RAMSIZE, 0xff, PAGE_SIZE);
+        memcpy(buff, currPageStart, offset);
+        memcpy((void *) ((uint32_t) buff + (uint32_t) offset), VMS_currWriteBuffer, VMS_RAMSIZE);
+        
+        NVM_memclr4096((void*) currPageStart, VMS_RAMSIZE + PAGE_SIZE);
+        NVM_memcpy128((void*) currPageStart, buff, VMS_RAMSIZE + PAGE_SIZE);
+        
+        free(buff);
+    }else{
+        NVM_memclr4096((void*) VMS_currWriteOffset, VMS_RAMSIZE);
+    }
+    */
 }
 
 void VMS_relinkRamList(){
@@ -358,13 +404,16 @@ void VMS_relinkAll(){
 
 void VMS_unlink(VMS_BLOCK * block){
     if(block < 0xa0000000 || block > 0xa0010000) return; //can't write into anything but ram
+    if(block->offBlock == 0xffffffff) return;
     if(block->offBlock > 0x1000 && block->offBlock != VMS_DIE) block->offBlock = block->offBlock->uid;
     uint8_t i;
     for(i = 0; i < VMS_MAX_BRANCHES; i ++){
+        UART_print("unlink 0x%08x\r\n", block->nextBlocks[i]);
         if(block->nextBlocks[i] > 0x1000 && block->nextBlocks[i] != VMS_DIE){
             block->nextBlocks[i] = block->nextBlocks[i]->uid;
         }
     }
+    UART_print("done!\r\n");
 }
 
 void VMS_unlinkMapEntry(MAPTABLE_ENTRY * entry){
@@ -381,9 +430,14 @@ VMS_BLOCK * VMS_find(uint32_t uid){
     if(VMS_currWriteBuffer != 0){
         UART_print("checking ram\r\n");
         for(; lb < VMS_RAMSIZE / sizeof(VMS_BLOCK); lb++){
-            if(VMS_currWriteBuffer[lb].uid == 0) break;
+            if(VMS_currWriteBuffer[lb].uid == 0 || VMS_currWriteBuffer[lb].uid == 0xffffffff) break;
             //since the block list is still in ram at this point we have to calculate the pointer it will have once written into flash
-            if(VMS_currWriteBuffer[lb].uid == uid) return VMS_currWriteOffset + sizeof(VMS_BLOCK) * lb;
+            if(VMS_currWriteBuffer[lb].uid == uid){
+                VMS_BLOCK * ret = (VMS_BLOCK *) ((uint32_t) VMS_currWriteOffset + sizeof(VMS_BLOCK) * lb);
+                UART_print("found %d at 0x%08x\r\n", uid, ret);
+                return ret;
+            }
+            
         }
     }
     
@@ -393,7 +447,10 @@ VMS_BLOCK * VMS_find(uint32_t uid){
     VMS_BLOCK * flashBlocks = (VMS_BLOCK *) NVM_blockMem;
     for(; lb < BLOCKMEM_SIZE / sizeof(VMS_BLOCK); lb++){
         if(flashBlocks[lb].uid == 0xffffffff) break;
-        if(flashBlocks[lb].uid == uid) return &flashBlocks[lb];
+        if(flashBlocks[lb].uid == uid){
+            UART_print("found %d at 0x%08x\r\n", uid, &flashBlocks[lb]);
+            return &flashBlocks[lb];
+        }
     }
     
     return 0;
@@ -414,9 +471,11 @@ MAPTABLE_HEADER * MAPPER_findFreeSpace(uint32_t size){
 
 VMS_BLOCK * VMS_findFreeSpace(){
     VMS_BLOCK * currBlock = (VMS_BLOCK *) &NVM_blockMem;
+    uint32_t c = 0;
     while(1){
-        if(currBlock->uid == 0xffffffff) return currBlock;
-        if(((uint32_t) currBlock - (uint32_t) &NVM_blockMem) >= (BLOCKMEM_SIZE)) break;
+        if(currBlock[c].uid == 0xffffffff) return &currBlock[c];
+        c++; 
+        if(((uint32_t) &currBlock[c] - (uint32_t) &NVM_blockMem) >= (BLOCKMEM_SIZE)) break;
     }
     return 0;
 }

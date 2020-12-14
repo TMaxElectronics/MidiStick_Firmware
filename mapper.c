@@ -130,7 +130,6 @@ MAPTABLE_HEADER * MAPPER_getHeader(uint8_t index){
     uint8_t currIndex = 0;
     while(currHeader->listEntries != 0 && currHeader->listEntries != 0xff){
         if(currIndex == index){
-            UART_print("CACHED ENTRY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\r\n");
             cache = currHeader;
             cachedIndex = index;
             return currHeader;
@@ -146,13 +145,9 @@ MAPTABLE_ENTRY * MAPPER_getEntry(uint8_t header, uint8_t index){
     MAPTABLE_HEADER * table;
     if(cachedIndex == header && cache != 0){
         table = cache;
-        UART_print("found matching cache entry!\r\n");
     }else{
         table = MAPPER_getHeader(header);
-        UART_print("loading header with index %d\r\n", header);
     }
-    
-    UART_print("scanning %d for %d (max = %d)\r\n", header, index, table->listEntries);
     
     MAPTABLE_ENTRY * entries = (MAPTABLE_ENTRY *) ((uint32_t) table + sizeof(MAPTABLE_HEADER));
     uint8_t currScan = 0;
