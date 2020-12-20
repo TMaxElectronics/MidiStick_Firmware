@@ -33,6 +33,7 @@
 #include "DLL.h"
 #include "NoteManager.h"
 #include "VMSRoutines.h"
+#include "HIDController.h"
 
 DLLObject * VMS_listHead = 0;
 uint8_t * VMSBLOCKS = 0;
@@ -43,6 +44,27 @@ const int32_t SINTABLE[] = {0, 6135, 12270, 18403, 24533, 30660, 36782, 42898, 4
 void * lastData = 0;
 
 void VMS_init(){
+    
+    //if an erase has failed previously we'd have a half empty list which would mess stuff up. If we find one we erase everything (might be very slow...)
+    if(!HID_erasePending){
+        UART_sendString("start check... ", 0);
+        VMS_BLOCK * cb = &(((VMS_BLOCK*) NVM_blockMem)[0]);
+        if(cb->uid == 0xffffffff || cb->uid == 0){
+            uint32_t currIndex = 1;
+            for(;currIndex < BLOCKMEM_SIZE / sizeof(VMS_BLOCK); currIndex++){
+                cb = &(((VMS_BLOCK*) NVM_blockMem)[currIndex]);
+                if(cb->uid != 0xffffffff && cb->uid != 0){
+                    UART_sendString("error found! starting erase", 1);
+                    Midi_setEnabled(0);
+                    HID_erasePending = 1;
+                    HID_currErasePage = NVM_blockMem;
+                    break;
+                }
+            }
+        }
+        UART_sendString("done!", 1);
+    }
+    
     VMS_listHead = createNewDll();
 }
 
@@ -76,6 +98,8 @@ inline uint32_t SYS_getTime(){
 }
 
 void VMS_resetVoice(SynthVoice * voice, VMS_BLOCK * startBlock){
+    if(!(startBlock > 0x9d000000 && startBlock < 0xa0010000)) return;
+    if(startBlock->uid == 0xffffffff || startBlock->uid == 0) return;
     //if(voice->id > 0) __builtin_software_breakpoint();
     DLLObject * currObject = VMS_listHead->next;
     VMS_listDataObject * data;
@@ -305,7 +329,7 @@ void VMS_nextBlock(VMS_listDataObject * data, unsigned blockSet){
             if(block->nextBlocks[c] == VMS_DIE){
                 return;
             }
-            if(block->nextBlocks[c] > 0x100000) VMS_addBlockToList(block->nextBlocks[c], voice);
+            if(block->nextBlocks[c] > 0x100000 && block->nextBlocks[c] < 0x9d04ffff) VMS_addBlockToList(block->nextBlocks[c], voice);
         }
     }else{
         if(block->offBlock != 0){
@@ -316,8 +340,24 @@ void VMS_nextBlock(VMS_listDataObject * data, unsigned blockSet){
 }
 
 void VMS_clear(){
-    //TODO free sin data
-    DLL_clear(VMS_listHead);
+    if(VMS_listHead == 0) return;
+    DLLObject * currObject = VMS_listHead->next;
+    VMS_listDataObject * data;
+    
+    while(currObject != VMS_listHead){
+        data = currObject->data;
+        if(data > 0xa0000000 && data < 0xa0010000){
+            switch(data->block->type){
+                case VMS_SIN:
+                    free(data->data);
+                    break;
+            }
+
+            free(data);
+        }
+        currObject = currObject->next;
+        DLL_remove(currObject->prev);
+    }
 }
 
 unsigned VMS_calculateValue(VMS_listDataObject * data){
@@ -325,9 +365,16 @@ unsigned VMS_calculateValue(VMS_listDataObject * data){
     SynthVoice * voice = data->targetVoice;
     VMS_BLOCK * block = data->block;
     
-    if(block->behavior != voice->on){
-        VMS_nextBlock(data, 0);
-        return 0;
+    if(block->behavior == NORMAL){
+        if(!channelData[voice->currNoteOrigin].sustainPedal && !voice->on){
+            VMS_nextBlock(data, 0);
+            return 0;
+        }
+    }else{
+        if(voice->on){
+            VMS_nextBlock(data, 0);
+            return 0;
+        }
     }
     
     int32_t param1 = (block->param1 > 0 && block->param1 < KNOWNVAL_MAX) ? VMS_getKnownValue(block->param1, voice) : block->param1;

@@ -11,7 +11,7 @@
 #define FORCE_SETTINGS_OVERRIDE 0
 
 MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
-CoilConfig defaultCoil = {"default coil          ", 200, 0, 10, 25, 800};                              //default coil must not output anything, so the max on time is set to zero
+CoilConfig defaultCoil = {"default coil          ", 400, 0, 10, 25, 800};                              //default coil must not output anything, so the max on time is set to zero
 
 
 /*
@@ -65,12 +65,14 @@ void NVM_commitFWUpdate(unsigned settingsOverwrite){
 
 void NVM_finishFWUpdate(){      //if an update was just performed, we need to reset the command and load the new firmware's info into the flash
     if(ConfigData.cfg.fwStatus == 0x10) return;
+    UART_sendString("Info> Firmware was upgraded to 1", 0);
     CFGData * pageStart = (void*) &ConfigData.cfg;
     CFGData * updatedCFG = (CFGData *) ((uint32_t) &ConfigData.cfg + 0x20000);  //this loads the FW information from the region of the updated firmware
     
     CFGData * buffer = malloc(PAGE_SIZE);
     memcpy(buffer, pageStart, PAGE_SIZE);
     
+    UART_sendString("Info> Firmware was upgraded to 2", 0);
     //make sure all parameters are within their valid range, if one is outside it, write the default value
     //This is needed if a setting was added, as the value at that location is not predictable, and could potenitally cause problems
     //If for example a device with V0.9 was updated to V0.91 (where the custom Pids were added) it would have a pid of 0x3e1, which would effectively soft brick the device
@@ -118,23 +120,24 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
         buffer->stereoSlope = 0xff;
     }
     
+    UART_sendString("Info> Firmware was upgraded to 3", 0);
     //overwrite the old data for fwStatus (otherwise the bootloader would just copy stuff again) and the firmware version string
     buffer->fwStatus = 0x10;
     memcpy(buffer->fwVersion, updatedCFG->fwVersion, 24);
     buffer->resMemEnd = updatedCFG->resMemEnd;
     buffer->resMemStart = updatedCFG->resMemStart;
-    UART_sendString("Info> Firmware was upgraded to ", 0); UART_sendString(updatedCFG->fwVersion, 1);
     
+    UART_sendString("Info> Firmware was upgraded to 4", 0);
     //erase the old and write the new data
     NVM_erasePage(pageStart);
     NVM_memcpy128(pageStart, buffer, PAGE_SIZE);
     free(buffer);
-}
-
-void NVM_clearAllProgramms(){
-    void* pageStart = (void*) &ConfigData;
-    NVM_memclr4096(pageStart, sizeof(MidiProgramm) * 128);  //clear the data. the 128 align with flash pages, so we don't need to worry about erasing data from the coil configs
-    //UART_sendString("deleted all programms", 1);
+    
+    UART_sendString("Info> Firmware was upgraded to 5", 0);
+    Midi_setEnabled(0);
+    NVM_memclr4096(NVM_mapMem, MAPMEM_SIZE);
+    HID_erasePending = 1;
+    HID_currErasePage = NVM_blockMem; UART_sendString(updatedCFG->fwVersion, 1);
 }
 
 void NVM_clearAllCoils(){
@@ -193,7 +196,7 @@ unsigned NVM_updateDevicePID(uint16_t newPID){
 }
 
 
-unsigned NVM_SriteStereoParameters(uint8_t c, uint8_t w, uint8_t s){
+unsigned NVM_writeStereoParameters(uint8_t c, uint8_t w, uint8_t s){
     void* pageStart = (void*) &ConfigData.cfg; //the page containing the config data starts here and contains the coil configs as well
     
     //copy page data to ram

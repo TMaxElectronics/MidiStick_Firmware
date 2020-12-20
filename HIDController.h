@@ -40,7 +40,7 @@
 #define USB_CMD_GET_FWVERSION           0x51
 #define USB_CMD_GET_BLVERSION           0x52
 
-#define USB_CMD_SUPPORT_EXTINSTR        0x80
+#define USB_CMD_GET_PROTOCOL_VERS       0x80
 #define USB_CMD_VMS_WRITEBLOCK          0x81
 #define USB_CMD_VMS_CLEARBLOCKS         0x82
 #define USB_VMS_GETMAXBLOCKCOUNT        0x83

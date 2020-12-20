@@ -93,7 +93,7 @@ void NVM_writeFWUpdate(void* src, uint32_t pageOffset);
 
 unsigned NVM_writeCFG(CFGData * src);
 unsigned NVM_updateDevicePID(uint16_t newPID);
-unsigned NVM_SriteStereoParameters(uint8_t c, uint8_t w, uint8_t s);
+unsigned NVM_writeStereoParameters(uint8_t c, uint8_t w, uint8_t s);
 
 void NVM_memclr4096(void* start, uint32_t length);
 void NVM_memcpy4(void * dst, void * src, uint32_t length);

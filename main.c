@@ -130,17 +130,15 @@ void main(void) {
             NVM_erasePage(HID_currErasePage);
             HID_currErasePage += PAGE_SIZE;
             if(HID_currErasePage > NVM_blockMem + BLOCKMEM_SIZE){
-                UART_sendString("Erase done!", 1);
                 HID_erasePending = 0;
-            }else{
-                UART_sendString("pe", 1);
+                Midi_setEnabled(1);
             }
         }
         
-        //if(_CP0_GET_COUNT() - lastRun > 240000){
-        //    lastRun = _CP0_GET_COUNT();
-        //    UART_print("voice 2: OT = %d, freq = %d TMR = %d PR = %d (%s)\r\n", Midi_voice[1].otCurrent, Midi_voice[1].freqCurrent, TMR3, PR3, (T3CON & _T2CON_ON_MASK) ? "on" : "off");
-        //}
+        /*if(_CP0_GET_COUNT() - lastRun > 240000){
+            lastRun = _CP0_GET_COUNT();
+            UART_print("T1CON: ON = %d, PR1 = %d TMR1 = %d\r\n", T1CONbits.ON, PR1, TMR1);
+        }*/
     }
 }
 

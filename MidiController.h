@@ -70,6 +70,7 @@ extern uint16_t Midi_minOnTimeVal;
 extern uint16_t Midi_maxOnTimeVal;
 
 extern ChannelInfo channelData[16];
+extern unsigned Midi_enabled;
 
 //Initialise midi stuff
 void Midi_init();
@@ -93,7 +94,8 @@ void Midi_setNoteTPR(uint8_t voice, uint16_t freq);
 void Midi_calculateADSR(uint8_t channel);
 
 //Checks if any voices are still outputting data
-unsigned Midi_isNotePlaing();               //returns: 1, when notes are playing, 0 otherwise
+unsigned Midi_areAllNotesOff();
+void Midi_setEnabled(unsigned ena);
 
 //Timer ISRs
 inline void Midi_timerHandler(uint8_t voice);

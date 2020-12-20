@@ -4,4 +4,5 @@ SignalGenerator.c  \
 ConfigManager.h  \
 types.h  \
 SignalGenerator.h  \
-UART32.h 
+UART32.h  \
+ ADSREngine.h 

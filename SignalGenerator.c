@@ -4,9 +4,10 @@
 #include "MidiController.h"
 #include "SignalGenerator.h"
 #include "UART32.h"
+#include "ADSREngine.h"
 
 int32_t SigGen_accumulatedOT = 0;
-uint32_t SigGen_noteOffTime = 0;
+uint32_t SigGen_unblockTime = 0;
 unsigned SigGen_outputOn = 0;
 uint8_t lastTimer = 0xff;
 uint32_t SigGen_maxOTScaled = 0;
@@ -44,7 +45,7 @@ void SigGen_init(){
 }
 
 //set the timer period register to the appropriate value for the required frequency. To allow for smooth pitch bend commands the frequency is in 1/10th Hz
-void SigGen_setNoteTPR(uint8_t voice, uint16_t freqTenths){
+void SigGen_setNoteTPR(uint8_t voice, uint32_t freqTenths){
     uint32_t divVal = 69;
     if(freqTenths != 0) divVal = 1875000 / freqTenths;
     
@@ -166,17 +167,21 @@ void __ISR(_TIMER_1_VECTOR) SigGen_noteOffISR(){
     IFS0CLR = _IFS0_T1IF_MASK;
     
     LATBCLR = _LATB_LATB15_MASK | _LATB_LATB5_MASK; //turn off the output
-    T1CONCLR = _T1CON_ON_MASK;
-    SigGen_outputOn = 0;
-
-    IEC0SET = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
-    
-    SigGen_noteOffTime = _CP0_GET_COUNT();     //core timer runs at 1/2 CPU freq = 24MHz, so 1 TMR count = 32 CoreTimer count
+    if(SigGen_outputOn){
+        SigGen_outputOn = 0;
+        PR1 = (Midi_currCoil->holdoffTime * 100) / 133;
+        TMR1 = 0;
+    }else{
+        T1CONCLR = _T1CON_ON_MASK;
+        IEC0SET = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
+    }
 }
 
 inline void SigGen_timerHandler(uint8_t voice){
     if(SigGen_outputOn) return;
     if(Midi_voice[voice].otCurrent < Midi_currCoil->minOnTime || Midi_voice[voice].otCurrent > Midi_currCoil->maxOnTime) return;
+    if(Midi_voice[voice].outputOT == 0 || Midi_voice[voice].outputOT > SigGen_maxOTScaled) return;
+    SigGen_outputOn = 1;
     
     uint16_t otLimit = Midi_currCoil->ontimeLimit * 4;
     
@@ -205,7 +210,6 @@ inline void SigGen_timerHandler(uint8_t voice){
         }
     }
     
-    if(Midi_voice[voice].outputOT == 0 || Midi_voice[voice].outputOT > SigGen_maxOTScaled) return;
     
     PR1 = Midi_voice[voice].outputOT;
     TMR1 = 0;
@@ -213,6 +217,5 @@ inline void SigGen_timerHandler(uint8_t voice){
     IEC0CLR = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
     
     //at this point everything is set up to turn the output off after a safe on time, so we can turn on the output. We have to make sure that the E-Stop is not triggered if it is enabled
-    SigGen_outputOn = 1;
     if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));
 }

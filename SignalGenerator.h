@@ -11,7 +11,7 @@
 void SigGen_init();
 
 //set the timer period register to the appropriate value for the required frequency. To allow for smooth pitch bend commands the frequency is in 1/10th Hz
-void SigGen_setNoteTPR(uint8_t voice, uint16_t freqTenths);
+void SigGen_setNoteTPR(uint8_t voice, uint32_t freqTenths);
 
 inline void SigGen_timerHandler(uint8_t voice);
 

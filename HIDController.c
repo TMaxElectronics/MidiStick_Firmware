@@ -16,6 +16,7 @@
 #include "UART32.h"
 
 #define VMS_RAMSIZE 4096
+#define PROTOCOL_VERSION 1
 
 uint32_t lastVMSBlock = 0;
 enum {LISTSTATE_NORMAL, LISTSTATE_UNLINKED} HID_blocklistState;
@@ -35,11 +36,12 @@ void VMS_relinkAll();
 void VMS_relinkRamList();
 
 void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t dataSize) {
-    if(input[0] == USB_CMD_SUPPORT_EXTINSTR){
+    if(input[0] == PROTOCOL_VERSION){
         output[0] = 1;
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     
     }else if(input[0] == USB_CMD_VMS_CLEARBLOCKS){
+        Midi_setEnabled(0);
         if(VMS_currWriteBuffer != 0){
             free(VMS_currWriteBuffer);
             VMS_currWriteBuffer = 0;
@@ -60,17 +62,18 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_CMD_VMS_WRITEBLOCK){
+        if(Midi_enabled) Midi_setEnabled(0);
         if(VMS_currWriteBuffer == 0){
             VMS_currWriteBuffer = malloc(VMS_RAMSIZE);
-            UART_print("allocated blockBuffer 0x%08x\r\n", VMS_currWriteBuffer);
+            //UART_print("allocated blockBuffer 0x%08x\r\n", VMS_currWriteBuffer);
             memset(VMS_currWriteBuffer, 0, VMS_RAMSIZE);
             lastVMSBlock = 0;
             VMS_currWriteOffset = (void*) VMS_findFreeSpace();
-            UART_print("new Offset = 0x%08x\r\n", VMS_currWriteOffset);
+            //UART_print("new Offset = 0x%08x\r\n", VMS_currWriteOffset);
         }
         
         if(!(lastVMSBlock < VMS_RAMSIZE / sizeof(VMS_BLOCK))){
-            UART_print("Blocklist overflow! attempting relink, which will probably fail\r\n");
+            //UART_print("Blocklist overflow! attempting relink, which will probably fail\r\n");
             VMS_relinkRamList();
             VMS_writeRamList();
             lastVMSBlock = 0;
@@ -79,7 +82,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         
         memcpy(&VMS_currWriteBuffer[lastVMSBlock], input + 1, sizeof(VMS_BLOCK));
         
-        UART_print("got Block %d! (placed at 0x%08x)\r\n", lastVMSBlock, &VMS_currWriteBuffer[lastVMSBlock]);
+        //UART_print("got Block %d! (placed at 0x%08x)\r\n", lastVMSBlock, &VMS_currWriteBuffer[lastVMSBlock]);
         
         lastVMSBlock++;
         
@@ -88,16 +91,16 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         
     }else if(input[0] == USB_VMS_GETMAXBLOCKCOUNT){
         uint32_t count = BLOCKMEM_SIZE / sizeof(VMS_BLOCK);
-        UART_print("Maximum blockcount = %d\r\n", count);
+        //UART_print("Maximum blockcount = %d\r\n", count);
         output[0] = count >> 8;
         output[1] = count & 0xff;
         output[2] = sizeof(VMS_BLOCK);
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_VMS_RELINK){
-        UART_print("got relink command!\r\n");
+        //UART_print("got relink command!\r\n");
         if(VMS_currWriteBuffer != 0){
-            UART_print("Relinking and writing ramList\r\n");
+            //UART_print("Relinking and writing ramList\r\n");
             VMS_relinkRamList();
             VMS_writeRamList();
             free(VMS_currWriteBuffer);
@@ -105,14 +108,16 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         }
         
         if(HID_blocklistState == LISTSTATE_UNLINKED){
-            UART_print("Attempting full relink\r\n");
+            //UART_print("Attempting full relink\r\n");
             VMS_relinkAll();
         }
 
         output[0] = (HID_blocklistState == LISTSTATE_NORMAL);
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        Midi_setEnabled(1);
         
     }else if(input[0] == USB_MAP_CLEAR){
+        Midi_setEnabled(0);
         if(HID_currMapHeader != 0){
             free(HID_currMapHeader);
             HID_currMapHeader = 0;
@@ -122,8 +127,10 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             HID_currMapBuffer = malloc(MAPMEM_SIZE);
         }
         memset(HID_currMapBuffer, 0, MAPMEM_SIZE);
+        Midi_setEnabled(1);
         
     }else if(input[0] == USB_MAP_STARTWRITE){
+        Midi_setEnabled(0);
         if(HID_currMapHeader != 0){
             free(HID_currMapHeader);
             HID_currMapHeader = 0;
@@ -137,7 +144,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         if(HID_currMapHeader == 0) UART_print("FUUUUUCK no ram :(\r\n");
         
         memcpy(HID_currMapHeader, receivedHeader, sizeof(MAPTABLE_HEADER));
-        UART_print("start map table write for program %d with %d items\r\n", HID_currMapHeader->programNumber, HID_currMapHeader->listEntries);
+        //UART_print("start map table write for program %d with %d items\r\n", HID_currMapHeader->programNumber, HID_currMapHeader->listEntries);
         
         output[0] = 1;
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
@@ -150,7 +157,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             if(HID_currMapHeader->listEntries > input[1]){
                 MAPTABLE_ENTRY * currTarget = (MAPTABLE_ENTRY *) ((uint32_t) HID_currMapHeader + sizeof(MAPTABLE_HEADER) + sizeof(MAPTABLE_ENTRY) * input[1]);
                 memcpy(currTarget, receivedEntry, sizeof(MAPTABLE_ENTRY));
-                UART_print("   written entry %d (start = %d, end = %d, sb = %d, freq = %d, flags = 0x%02x, ot = %d)\r\n", input[1], currTarget->startNote, currTarget->endNote, currTarget->data.VMS_Startblock, currTarget->data.noteFreq, currTarget->data.flags, currTarget->data.targetOT);
+                //UART_print("   written entry %d (start = %d, end = %d, sb = %d, freq = %d, flags = 0x%02x, ot = %d)\r\n", input[1], currTarget->startNote, currTarget->endNote, currTarget->data.VMS_Startblock, currTarget->data.noteFreq, currTarget->data.flags, currTarget->data.targetOT);
             }else{
                 UART_print("   NO. %d > %d\r\n", input[1], HID_currMapHeader->listEntries);
             }
@@ -166,11 +173,11 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             VMS_relinkMaptable(HID_currMapHeader);
             
             uint32_t requiredSize = sizeof(MAPTABLE_HEADER) + sizeof(MAPTABLE_ENTRY) * HID_currMapHeader->listEntries;
-            UART_print("searching for %d free bytes in the maplist\r\n", requiredSize);
+            //UART_print("searching for %d free bytes in the maplist\r\n", requiredSize);
             MAPTABLE_HEADER * targetDest = MAPPER_findFreeSpace(requiredSize);
             
             if(targetDest != 0 && HID_currMapBuffer != 0){
-               UART_print("copying maptable\r\n");
+               //UART_print("copying maptable\r\n");
                memcpy(targetDest, HID_currMapHeader, requiredSize);
             }else{
                UART_print("what even happened. This sucks\r\n"); 
@@ -186,7 +193,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
     }else if(input[0] == USB_MAP_ENDALL){        
         output[0] = 0;
         if(HID_currMapBuffer != 0){
-            UART_print("writing maptable to flash\r\n"); 
+            //UART_print("writing maptable to flash\r\n"); 
             NVM_memclr4096(NVM_mapMem, MAPMEM_SIZE);
             NVM_memcpy128(NVM_mapMem, HID_currMapBuffer, MAPMEM_SIZE);      
             free(HID_currMapBuffer);
@@ -194,43 +201,54 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             output[0] = 1;
             MAPPER_handleMapWrite();
         }
+        Midi_setEnabled(1);
         
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     }else if(input[0] == USB_VMS_READ_BLOCK){  
-        uint16_t currBlock = input[1] | (input[2] << 8) | (input[3] << 16) | (input[4] << 24);
         output[0] = USB_VMS_READ_BLOCK;
-        
-        if(currBlock < BLOCKMEM_SIZE / sizeof(VMS_BLOCK)){
-            VMS_BLOCK * buff = malloc(sizeof(VMS_BLOCK));
-            VMS_BLOCK * cb = &(((VMS_BLOCK*) NVM_blockMem)[currBlock]);//(VMS_BLOCK *) (NVM_blockMem + currBlock * sizeof(VMS_BLOCK));
-            UART_print("Read valid block[%d]. UID is 0x%08x\r\n", currBlock, cb->uid);
-            memcpy(buff, cb, sizeof(VMS_BLOCK));
-            VMS_unlink(buff);
-            memcpy(&output[1], buff, 63);
-            free(buff);
+        if(!HID_erasePending){
+            uint16_t currBlock = input[1] | (input[2] << 8) | (input[3] << 16) | (input[4] << 24);
+
+            if(currBlock < BLOCKMEM_SIZE / sizeof(VMS_BLOCK)){
+                VMS_BLOCK * buff = malloc(sizeof(VMS_BLOCK));
+                VMS_BLOCK * cb = &(((VMS_BLOCK*) NVM_blockMem)[currBlock]);//(VMS_BLOCK *) (NVM_blockMem + currBlock * sizeof(VMS_BLOCK));
+                //UART_print("Read valid block[%d]. UID is 0x%08x\r\n", currBlock, cb->uid);
+                memcpy(buff, cb, sizeof(VMS_BLOCK));
+                VMS_unlink(buff);
+                memcpy(&output[1], buff, 63);
+                free(buff);
+            }else{
+                UART_sendString("Read invalid block\r\n", 1);
+                memset(&output[1], 0xff, 63);
+            }
         }else{
-            UART_sendString("Read invalid block", 1);
+            UART_sendString("still erasing!", 1);
             memset(&output[1], 0xff, 63);
         }
         
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
-    }else if(input[0] == USB_MAP_READ_HEADER){  
-        uint16_t currHeader = input[1];
-        output[0] = USB_MAP_READ_HEADER;
-        
-        if(currHeader < 127){
-            MAPTABLE_HEADER * head = MAPPER_getHeader(currHeader);
-            if(head == 0){
-                UART_sendString("Read invalid map header", 1);
-                memset(&output[1], 0xff, 63);
+    }else if(input[0] == USB_MAP_READ_HEADER){ 
+        output[0] = USB_MAP_READ_HEADER; 
+        if(!HID_erasePending){
+            uint16_t currHeader = input[1];
+
+            if(currHeader < 127){
+                MAPTABLE_HEADER * head = MAPPER_getHeader(currHeader);
+                if(head == 0){
+                    //UART_sendString("Read invalid map header", 1);
+                    memset(&output[1], 0xff, 63);
+                }else{
+                    //UART_sendString("Read valid map header", 1);
+                    memcpy(&output[1], head, sizeof(MAPTABLE_HEADER));
+                    //UART_sendString("done", 1);
+                }
             }else{
-                UART_sendString("Read valid map header", 1);
-                memcpy(&output[1], head, sizeof(MAPTABLE_HEADER));
-                UART_sendString("done", 1);
+                //UART_sendString("Read invalid map header", 1);
+                memset(&output[1], 0xff, 63);
             }
         }else{
-            UART_sendString("Read invalid map header", 1);
+            //UART_sendString("Read invalid map header", 1);
             memset(&output[1], 0xff, 63);
         }
         
@@ -241,19 +259,19 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         output[0] = USB_MAP_READ_ENTRY;
         
         if(currHeader < 127 && currEntry < 127){
-            UART_print("Read valid map entry %d from header %d\r\n", currEntry, currHeader); 
+            //UART_print("Read valid map entry %d from header %d\r\n", currEntry, currHeader); 
             MAPTABLE_ENTRY * entry = MAPPER_getEntry(currHeader, currEntry);
             if(entry != 0){
-                UART_print("Read valid map entry: 0x%08x, startblock = 0x%08x\r\n", entry, entry->data.VMS_Startblock);
+                //UART_print("Read valid map entry: 0x%08x, startblock = 0x%08x\r\n", entry, entry->data.VMS_Startblock);
                 MAPTABLE_ENTRY * buff = malloc(sizeof(MAPTABLE_ENTRY));
                 memcpy(buff, entry, sizeof(MAPTABLE_ENTRY));
-                UART_sendString("start unlink", 1);
+                //UART_sendString("start unlink", 1);
                 VMS_unlinkMapEntry(buff);
-                UART_sendString("end unlink", 1);
+                //UART_sendString("end unlink", 1);
                 memcpy(&output[1], buff, sizeof(MAPTABLE_ENTRY));
                 free(buff);
             }else{
-                UART_sendString("Read invalid map entry", 1);
+                //UART_sendString("Read invalid map entry", 1);
                 memset(&output[1], 0xff, 63);
             }
         }else{
@@ -272,7 +290,7 @@ void VMS_relinkMaptable(MAPTABLE_HEADER * listStart){
         if(entries[currEntry].data.VMS_Startblock != 0){
             uint32_t lastUID = entries[currEntry].data.VMS_Startblock;
             entries[currEntry].data.VMS_Startblock = VMS_find(entries[currEntry].data.VMS_Startblock);
-            UART_print("      relinked startblock of %d to %d=0x%08x\r\n", currEntry, lastUID, entries[currEntry].data.VMS_Startblock);
+            //UART_print("      relinked startblock of %d to %d=0x%08x\r\n", currEntry, lastUID, entries[currEntry].data.VMS_Startblock);
         }
     }
 }
@@ -314,7 +332,7 @@ void VMS_relinkRamList(){
 
     for(; lb < 0xffff; lb++){
         if(VMS_currWriteBuffer[lb].uid == 0) break;
-        UART_print("Relinking %d\r\n", lb);
+        //UART_print("Relinking %d\r\n", lb);
         VMS_currWriteBuffer[lb].offBlock = VMS_find(VMS_currWriteBuffer[lb].offBlock);
 
         uint8_t i = 0;
@@ -384,19 +402,19 @@ void VMS_unlink(VMS_BLOCK * block){
     if(block->offBlock > 0x1000 && block->offBlock != VMS_DIE) block->offBlock = block->offBlock->uid;
     uint8_t i;
     for(i = 0; i < VMS_MAX_BRANCHES; i ++){
-        UART_print("unlink 0x%08x\r\n", block->nextBlocks[i]);
+        //UART_print("unlink 0x%08x\r\n", block->nextBlocks[i]);
         if(block->nextBlocks[i] > 0x1000 && block->nextBlocks[i] != VMS_DIE){
             block->nextBlocks[i] = block->nextBlocks[i]->uid;
         }
     }
-    UART_print("done!\r\n");
+    //UART_print("done!\r\n");
 }
 
 void VMS_unlinkMapEntry(MAPTABLE_ENTRY * entry){
     if(entry < 0xa0000000 || entry > 0xa0010000) return; //can't write into anything but ram
-    UART_print("start = 0x%08x -> ", entry->data.VMS_Startblock);
+    //UART_print("start = 0x%08x -> ", entry->data.VMS_Startblock);
     if(entry->data.VMS_Startblock > 0x1000 && entry->data.VMS_Startblock != VMS_DIE) entry->data.VMS_Startblock = entry->data.VMS_Startblock->uid;
-    UART_print("0x%08x\r\n", entry->data.VMS_Startblock);
+    //UART_print("0x%08x\r\n", entry->data.VMS_Startblock);
 }
 
 VMS_BLOCK * VMS_find(uint32_t uid){
@@ -404,27 +422,27 @@ VMS_BLOCK * VMS_find(uint32_t uid){
     uint32_t lb = 0;
     
     if(VMS_currWriteBuffer != 0){
-        UART_print("checking ram\r\n");
+        //UART_print("checking ram\r\n");
         for(; lb < VMS_RAMSIZE / sizeof(VMS_BLOCK); lb++){
             if(VMS_currWriteBuffer[lb].uid == 0 || VMS_currWriteBuffer[lb].uid == 0xffffffff) break;
             //since the block list is still in ram at this point we have to calculate the pointer it will have once written into flash
             if(VMS_currWriteBuffer[lb].uid == uid){
                 VMS_BLOCK * ret = (VMS_BLOCK *) ((uint32_t) VMS_currWriteOffset + sizeof(VMS_BLOCK) * lb);
-                UART_print("found %d at 0x%08x\r\n", uid, ret);
+                //UART_print("found %d at 0x%08x\r\n", uid, ret);
                 return ret;
             }
             
         }
     }
     
-    UART_print("block not found in ram, checking flash\r\n");
+    //UART_print("block not found in ram, checking flash\r\n");
     
     lb = 0;
     VMS_BLOCK * flashBlocks = (VMS_BLOCK *) NVM_blockMem;
     for(; lb < BLOCKMEM_SIZE / sizeof(VMS_BLOCK); lb++){
         if(flashBlocks[lb].uid == 0xffffffff) break;
         if(flashBlocks[lb].uid == uid){
-            UART_print("found %d at 0x%08x\r\n", uid, &flashBlocks[lb]);
+            //UART_print("found %d at 0x%08x\r\n", uid, &flashBlocks[lb]);
             return &flashBlocks[lb];
         }
     }
@@ -437,7 +455,7 @@ MAPTABLE_HEADER * MAPPER_findFreeSpace(uint32_t size){
     MAPTABLE_HEADER * currHeader = (MAPTABLE_HEADER *) HID_currMapBuffer;
     while(1){
         //if the current header is empty (aka all 0) we return it
-        UART_print("checking 0x%08x: count = %d, num = %d\r\n", currHeader, currHeader->listEntries, currHeader->programNumber);
+        //UART_print("checking 0x%08x: count = %d, num = %d\r\n", currHeader, currHeader->listEntries, currHeader->programNumber);
         if(currHeader->listEntries == 0 && currHeader->programNumber == 0) return currHeader;
         currHeader += sizeof(MAPTABLE_HEADER) + sizeof(MAPTABLE_ENTRY) * currHeader->listEntries;
         if(((uint32_t) currHeader - (uint32_t) HID_currMapBuffer) >= (MAPMEM_SIZE - size)) break;

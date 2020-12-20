@@ -6,12 +6,12 @@
 #include "VMSRoutines.h"
 #include "HIDController.h"
 
-#define MAX_PORTAMENTOTIME 500
+#define MAX_PORTAMENTOTIME 100
 
 const struct{
     MAPTABLE_HEADER h0;
     MAPTABLE_ENTRY h0e0;
-} DEFMAP = {.h0 = {.programNumber = 0, .listEntries = 1} , .h0e0 = {.startNote = 0, .endNote = 127, .data.VMS_Startblock = &ATTAC, .data.flags = MAP_ENA_DAMPER | MAP_ENA_STEREO | MAP_ENA_VOLUME | MAP_ENA_PITCHBEND | MAP_FREQ_MODE, .data.noteFreq = 0, .data.targetOT = 0xff}};
+} DEFMAP = {.h0 = {.programNumber = 0, .listEntries = 1} , .h0e0 = {.startNote = 0, .endNote = 127, .data.VMS_Startblock = &ATTAC, .data.flags = MAP_ENA_DAMPER | MAP_ENA_STEREO | MAP_ENA_VOLUME | MAP_ENA_PITCHBEND | MAP_FREQ_MODE, .data.noteFreq = 0, .data.targetOT = 0}};
 
 void MAPPER_map(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel){
     MAPTABLE_DATA * map = MAPPER_getMap(note, channelData[channel].currentMap);
@@ -47,7 +47,7 @@ void MAPPER_map(uint8_t voice, uint8_t note, uint8_t velocity, uint8_t channel){
     }
     
     //UART_print("OT=%d;freq=%d;ch=%d;voice=%d\r\n", targetOT, currNoteFreq, channel, voice);
-    if(currNoteFreq != 0 && targetOT > Midi_currCoil->minOnTime){
+    if(currNoteFreq != 0 && targetOT){
         Midi_voice[voice].currNoteOrigin = channel;
         
         //TODO fix this... (maybe done?)
@@ -197,7 +197,7 @@ void MAPPER_volumeHandler(uint8_t channel){
 void MAPPER_bendHandler(uint8_t channel){
     uint8_t currChannel = 0;
     for(;currChannel < 4; currChannel ++){
-        if(Midi_voice[currChannel].currNoteOrigin == channel && Midi_voice[currChannel].on){
+        if(Midi_voice[currChannel].currNoteOrigin == channel && Midi_voice[currChannel].otCurrent > 0){
             MAPTABLE_DATA * map = Midi_voice[currChannel].map;
             if(map->flags & MAP_ENA_PITCHBEND == 0) continue;
             
