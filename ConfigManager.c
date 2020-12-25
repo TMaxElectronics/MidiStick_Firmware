@@ -8,10 +8,10 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
 
-#define FORCE_SETTINGS_OVERRIDE 0
+#define FORCE_SETTINGS_OVERRIDE 1
 
 MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
-CoilConfig defaultCoil = {"default coil          ", 400, 0, 10, 25, 800};                              //default coil must not output anything, so the max on time is set to zero
+CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};                              //default coil must not output anything, so the max on time is set to zero
 
 
 /*
@@ -21,14 +21,14 @@ CoilConfig defaultCoil = {"default coil          ", 400, 0, 10, 25, 800};       
  * At atartup the bootloader checks the value in the fwStatus variable, which tells it if it should start copying the data from the upper half of NVM to the lower->(the one we are executing from) 
  * 0x10 is the code for normal running code. It jumps to execution
  * 0x20 is the code for a pending software update, while keeping current settings. 
- * 0x21 is the code for a pending software update, but with the settings coied over as well.
+ * 0x21 is the code for a pending software update, but with the settings copied over as well.
  * 
  * The bootloader protects the settings by ignoring NVM between [resMemStart] and [resMemEnd] while copying and erasing. it will start to ignore the first page after teh value in resMemStart, and continue erasing/writing in the first page after resMemEnd
  */
 
 //initialize the default configuration
-const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "VMS Devstick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V1.00beta"
-    , .cfg.fwStatus = 0x10, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.stereoSlope), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x0002, 
+const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V1.0"
+    , .cfg.fwStatus = 0x22, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.stereoSlope), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x0002, 
     .cfg.stereoPosition = 64, .cfg.stereoWidth = 16, .cfg.stereoSlope = 255};
 
 const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {FORCE_SETTINGS_OVERRIDE};                               //dummy data
@@ -65,14 +65,13 @@ void NVM_commitFWUpdate(unsigned settingsOverwrite){
 
 void NVM_finishFWUpdate(){      //if an update was just performed, we need to reset the command and load the new firmware's info into the flash
     if(ConfigData.cfg.fwStatus == 0x10) return;
-    UART_sendString("Info> Firmware was upgraded to 1", 0);
+    UART_sendString("Info> Firmware was upgraded to ", 0);
     CFGData * pageStart = (void*) &ConfigData.cfg;
     CFGData * updatedCFG = (CFGData *) ((uint32_t) &ConfigData.cfg + 0x20000);  //this loads the FW information from the region of the updated firmware
     
     CFGData * buffer = malloc(PAGE_SIZE);
     memcpy(buffer, pageStart, PAGE_SIZE);
     
-    UART_sendString("Info> Firmware was upgraded to 2", 0);
     //make sure all parameters are within their valid range, if one is outside it, write the default value
     //This is needed if a setting was added, as the value at that location is not predictable, and could potenitally cause problems
     //If for example a device with V0.9 was updated to V0.91 (where the custom Pids were added) it would have a pid of 0x3e1, which would effectively soft brick the device
@@ -120,24 +119,22 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
         buffer->stereoSlope = 0xff;
     }
     
-    UART_sendString("Info> Firmware was upgraded to 3", 0);
     //overwrite the old data for fwStatus (otherwise the bootloader would just copy stuff again) and the firmware version string
     buffer->fwStatus = 0x10;
     memcpy(buffer->fwVersion, updatedCFG->fwVersion, 24);
     buffer->resMemEnd = updatedCFG->resMemEnd;
     buffer->resMemStart = updatedCFG->resMemStart;
     
-    UART_sendString("Info> Firmware was upgraded to 4", 0);
     //erase the old and write the new data
     NVM_erasePage(pageStart);
     NVM_memcpy128(pageStart, buffer, PAGE_SIZE);
     free(buffer);
     
-    UART_sendString("Info> Firmware was upgraded to 5", 0);
     Midi_setEnabled(0);
     NVM_memclr4096(NVM_mapMem, MAPMEM_SIZE);
     HID_erasePending = 1;
-    HID_currErasePage = NVM_blockMem; UART_sendString(updatedCFG->fwVersion, 1);
+    HID_currErasePage = NVM_blockMem; 
+    UART_sendString(updatedCFG->fwVersion, 1);
 }
 
 void NVM_clearAllCoils(){

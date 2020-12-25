@@ -48,6 +48,7 @@ struct _MapEntry_{
 struct _MapHeader_{
     uint8_t listEntries;
     uint8_t programNumber;
+    char name[18];
 } __attribute__((packed));
 
 //struct to contain all variables and parameters for the voices

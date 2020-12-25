@@ -150,7 +150,7 @@ void initIO(){
     //The LEDs are common anode and connected to the +5V rail, so enable the open drain inputs
     ODCBSET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
     
-    LATBSET = _LATB_LATB7_MASK | _LATB_LATB9_MASK;
+    LATBSET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
     LATBCLR = _LATB_LATB5_MASK | _LATB_LATB8_MASK | _LATB_LATB15_MASK;
 }
 

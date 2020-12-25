@@ -260,6 +260,7 @@ void Midi_run(){
                     for(;currVoice < MIDI_VOICECOUNT; currVoice++){
                         //Midi_voice[currVoice].currNote = 0xff;
                         Midi_voice[currVoice].otTarget = 0;
+                        Midi_voice[currVoice].otCurrent = 0;
                         Midi_voice[currVoice].on = 0;
                     }
                     
@@ -419,6 +420,7 @@ void Midi_run(){
                 memcpy(newData, &ConfigReceivedDataBuffer[1], sizeof(CFGData));
                 NVM_writeCFG(newData);
                 free(newData);
+                LATBSET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
                 Midi_LED(LED_POWER, LED_ON);    //turn on the power LED again, as it might be a different one from before
                 Midi_setEnabled(1);
 

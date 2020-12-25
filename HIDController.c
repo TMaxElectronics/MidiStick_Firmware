@@ -144,7 +144,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         if(HID_currMapHeader == 0) UART_print("FUUUUUCK no ram :(\r\n");
         
         memcpy(HID_currMapHeader, receivedHeader, sizeof(MAPTABLE_HEADER));
-        //UART_print("start map table write for program %d with %d items\r\n", HID_currMapHeader->programNumber, HID_currMapHeader->listEntries);
+        UART_print("start map \"%.18s\"table write for program %d with %d items\r\n", HID_currMapHeader->name, HID_currMapHeader->programNumber, HID_currMapHeader->listEntries);
         
         output[0] = 1;
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);

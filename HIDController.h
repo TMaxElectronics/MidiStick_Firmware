@@ -57,7 +57,7 @@
 #define USB_MAP_READ_HEADER             0x8d
 #define USB_MAP_READ_ENTRY              0x8e
   
-#define MAPMEM_SIZE   8192
+#define MAPMEM_SIZE   16384
 #define BLOCKMEM_SIZE 98304 //24*BYTE_PAGE_SIZE
 
 uint32_t HID_currErasePage = 0;
