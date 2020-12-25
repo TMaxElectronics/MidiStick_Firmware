@@ -1913,7 +1913,7 @@ static void USBCtrlTrfRxService(void)
                 #pragma warning push
                 #pragma warning disable 1088
                 outPipes[0].pFunc();    //Call the user's callback function
-                #pragma warning pop
+                #pragma warning DLL_pop
             #else
                 outPipes[0].pFunc();    //Call the user's callback function
             #endif

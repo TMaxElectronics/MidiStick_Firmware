@@ -7,6 +7,9 @@
 #define FW_STATE_UPDATEREQUEST 0x01     //copy the firmware as normal
 #define FW_STATE_VERIFICATION 0x02      //copy the FW and overwrite settings
 
+#ifndef ConfigManagerInc
+#define ConfigManagerInc
+
 typedef struct{
     char name[24];
     uint32_t AttacTime;
@@ -62,19 +65,22 @@ typedef struct {
 
 //this is where the configuration info is saved
 typedef struct {
-    MidiProgramm programm[128]; 
     CoilConfig coils[32];
     CFGData cfg;
     USBDevNameHeader devName;
 } CONF;
 
 extern const volatile CONF ConfigData; 
+extern const volatile uint8_t NVM_mapMem[];
+extern const volatile uint8_t NVM_blockMem[];
 
 //read and write for programm data
 unsigned NVM_readProgrammConfig(MidiProgramm * dest, uint8_t index);    //reads config from NVM (Non Volatile Memory) to ram
 unsigned NVM_writeProgrammConfig(MidiProgramm * src, uint8_t index);    //writes config to NVM
 void NVM_copyProgrammData(MidiProgramm * dst, MidiProgramm * src);      //copies data from one pointer to another. could be done with a memcpy, but I did it like this...
 unsigned NVM_isValidProgramm(uint8_t index);                            //checks if the data is valid (first byte of name is not 0)
+MidiProgramm * NVM_getProgrammConfig(uint8_t id);
+
 
 //read and write for coil data
 unsigned NVM_readCoilConfig(CoilConfig * dest, uint8_t index);
@@ -87,7 +93,7 @@ void NVM_writeFWUpdate(void* src, uint32_t pageOffset);
 
 unsigned NVM_writeCFG(CFGData * src);
 unsigned NVM_updateDevicePID(uint16_t newPID);
-unsigned NVM_SriteStereoParameters(uint8_t c, uint8_t w, uint8_t s);
+unsigned NVM_writeStereoParameters(uint8_t c, uint8_t w, uint8_t s);
 
 void NVM_memclr4096(void* start, uint32_t length);
 void NVM_memcpy4(void * dst, void * src, uint32_t length);
@@ -114,3 +120,5 @@ void NVM_clearAllProgramms();
 uint32_t NVM_getSerialNumber();
 char * NVM_getFWCompileDate();
 char * NVM_getFWCompileTime();
+
+#endif

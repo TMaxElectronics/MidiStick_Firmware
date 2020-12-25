@@ -20,6 +20,13 @@
       <itemPath>MidiController.h</itemPath>
       <itemPath>NoteManager.h</itemPath>
       <itemPath>UART32.h</itemPath>
+      <itemPath>ADSREngine.h</itemPath>
+      <itemPath>SignalGenerator.h</itemPath>
+      <itemPath>VMSRoutines.h</itemPath>
+      <itemPath>DLL.h</itemPath>
+      <itemPath>types.h</itemPath>
+      <itemPath>mapper.h</itemPath>
+      <itemPath>HIDController.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -40,6 +47,12 @@
       <itemPath>ConfigManager.c</itemPath>
       <itemPath>NoteManager.c</itemPath>
       <itemPath>UART32.c</itemPath>
+      <itemPath>ADSREngine.c</itemPath>
+      <itemPath>SignalGenerator.c</itemPath>
+      <itemPath>VMSRoutines.c</itemPath>
+      <itemPath>DLL.c</itemPath>
+      <itemPath>mapper.c</itemPath>
+      <itemPath>HIDController.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -76,7 +89,7 @@
         <loading>
           <loadableFile>bootloader_v1.2.hex</loadableFile>
           <useAlternateLoadableFile>false</useAlternateLoadableFile>
-          <parseOnProdLoad>false</parseOnProdLoad>
+          <parseOnProdLoad>true</parseOnProdLoad>
           <alternateLoadableFile></alternateLoadableFile>
         </loading>
         <subordinates>
@@ -163,7 +176,7 @@
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-cross-reference-file" value="true"/>
         <property key="generate-micro-compressed-code" value="false"/>
-        <property key="heap-size" value="16384"/>
+        <property key="heap-size" value="30000"/>
         <property key="input-libraries" value=""/>
         <property key="kseg-length" value=""/>
         <property key="kseg-origin" value=""/>
@@ -223,6 +236,54 @@
         <property key="save-temps" value="false"/>
         <property key="wpo-lto" value="false"/>
       </C32Global>
+      <item path="NoteManager.c" ex="true" overriding="false">
+        <C32>
+        </C32>
+        <C32-AR>
+        </C32-AR>
+        <C32-AS>
+        </C32-AS>
+        <C32-CO>
+        </C32-CO>
+        <C32-LD>
+        </C32-LD>
+        <C32CPP>
+        </C32CPP>
+        <C32Global>
+        </C32Global>
+      </item>
+      <item path="NoteManager.h" ex="true" overriding="false">
+        <C32>
+        </C32>
+        <C32-AR>
+        </C32-AR>
+        <C32-AS>
+        </C32-AS>
+        <C32-CO>
+        </C32-CO>
+        <C32-LD>
+        </C32-LD>
+        <C32CPP>
+        </C32CPP>
+        <C32Global>
+        </C32Global>
+      </item>
+      <item path="p32MX270F256B.ld" ex="false" overriding="false">
+        <C32>
+        </C32>
+        <C32-AR>
+        </C32-AR>
+        <C32-AS>
+        </C32-AS>
+        <C32-CO>
+        </C32-CO>
+        <C32-LD>
+        </C32-LD>
+        <C32CPP>
+        </C32CPP>
+        <C32Global>
+        </C32Global>
+      </item>
       <pk4hybrid>
         <property key="ADC 1" value="true"/>
         <property key="AutoSelectMemRanges" value="manual"/>
@@ -418,7 +479,7 @@
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-cross-reference-file" value="true"/>
         <property key="generate-micro-compressed-code" value="false"/>
-        <property key="heap-size" value="16384"/>
+        <property key="heap-size" value="32768"/>
         <property key="input-libraries" value=""/>
         <property key="kseg-length" value=""/>
         <property key="kseg-origin" value=""/>

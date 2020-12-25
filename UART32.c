@@ -5,8 +5,24 @@
 
 #include <stdio.h>
 #include <xc.h>
+#include <stdarg.h>
 
 #include "UART32.h"
+
+//send data to the debug min ID
+void UART_print(char * format, ...){
+    va_list arg;
+    va_start (arg, format);
+    
+    uint8_t * buff = (uint8_t*) malloc(256);
+    uint32_t length = vsprintf(buff, format, arg);
+    
+    UART_sendString(buff, 0);
+    
+    free(buff);
+    
+    va_end (arg);
+}
 
 void UART_init(int baudRate1, int baudRate2){
     U2MODE = 0b1000000000000000;                //UART Module ON, U1RX and U1TX only, Autobaud off, 8bit Data no parity, High Speed mode off
