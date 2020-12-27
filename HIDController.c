@@ -18,6 +18,9 @@
 #define VMS_RAMSIZE 4096
 #define PROTOCOL_VERSION 1
 
+uint32_t HID_currErasePage = 0;
+unsigned HID_erasePending;
+
 uint32_t lastVMSBlock = 0;
 enum {LISTSTATE_NORMAL, LISTSTATE_UNLINKED} HID_blocklistState;
 

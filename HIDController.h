@@ -60,7 +60,7 @@
 #define MAPMEM_SIZE   16384
 #define BLOCKMEM_SIZE 98304 //24*BYTE_PAGE_SIZE
 
-uint32_t HID_currErasePage = 0;
-unsigned HID_erasePending;
+extern uint32_t HID_currErasePage;
+extern unsigned HID_erasePending;
 
 void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t dataSize);
