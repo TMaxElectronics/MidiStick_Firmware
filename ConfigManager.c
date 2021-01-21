@@ -8,7 +8,7 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
 
-#define FORCE_SETTINGS_OVERRIDE 1
+#define FORCE_SETTINGS_OVERRIDE 0
 
 MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
 CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};                              //default coil must not output anything, so the max on time is set to zero
@@ -27,7 +27,7 @@ CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};           
  */
 
 //initialize the default configuration
-const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V1.0"
+const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V1.1"
     , .cfg.fwStatus = 0x22, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.stereoSlope), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x0002, 
     .cfg.stereoPosition = 64, .cfg.stereoWidth = 16, .cfg.stereoSlope = 255};
 
@@ -72,58 +72,61 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
     CFGData * buffer = malloc(PAGE_SIZE);
     memcpy(buffer, pageStart, PAGE_SIZE);
     
-    //make sure all parameters are within their valid range, if one is outside it, write the default value
-    //This is needed if a setting was added, as the value at that location is not predictable, and could potenitally cause problems
-    //If for example a device with V0.9 was updated to V0.91 (where the custom Pids were added) it would have a pid of 0x3e1, which would effectively soft brick the device
-    if(buffer->name[0] == 0){
-        strcpy(buffer->name, "Midi Stick");
-    }
-    
-    if(buffer->ledMode1 > LED_TYPE_COUNT){
-        buffer->ledMode1 = LED_DATA;
-    }
-    
-    if(buffer->ledMode2 > LED_TYPE_COUNT){
-        buffer->ledMode2 = LED_DUTY_LIMITER;
-    }
-    
-    if(buffer->ledMode3 > LED_TYPE_COUNT){
-        buffer->ledMode3 = LED_OUT_ON;
-    }
-    
-    if(buffer->auxMode > AUX_MODE_COUNT){
-        buffer->auxMode = AUX_AUDIO;
-    }
-    
-    if(buffer->resMemStart != ((uint32_t) &ConfigData)){
-        buffer->resMemStart == ((uint32_t) &ConfigData);
-    }
-    
-    if(buffer->resMemEnd != ((uint32_t) &ConfigData.cfg.stereoSlope)){
-        buffer->resMemEnd == buffer->resMemStart + sizeof(CFGData);
-    }
-    
-    if(buffer->USBPID != 0x0002 && (buffer->USBPID >= 0x1010 || buffer->USBPID < 0x1000)){
-        buffer->USBPID = 0x0002;
-    }
-    
-    if(buffer->stereoPosition > 127){
-        buffer->stereoPosition = 64;
-    }
-    
-    if(buffer->stereoWidth > 64){
-        buffer->stereoWidth = 64;
-    }
-    
-    if(buffer->stereoSlope == 0){
-        buffer->stereoSlope = 0xff;
+    if(ConfigData.cfg.fwStatus != 0x22){
+        //make sure all parameters are within their valid range, if one is outside it, write the default value
+        //This is needed if a setting was added, as the value at that location is not predictable, and could potenitally cause problems
+        //If for example a device with V0.9 was updated to V0.91 (where the custom Pids were added) it would have a pid of 0x3e1, which would effectively soft brick the device
+        if(buffer->name[0] == 0){
+            strcpy(buffer->name, "Midi Stick");
+        }
+
+        if(buffer->ledMode1 > LED_TYPE_COUNT){
+            buffer->ledMode1 = LED_DATA;
+        }
+
+        if(buffer->ledMode2 > LED_TYPE_COUNT){
+            buffer->ledMode2 = LED_DUTY_LIMITER;
+        }
+
+        if(buffer->ledMode3 > LED_TYPE_COUNT){
+            buffer->ledMode3 = LED_OUT_ON;
+        }
+
+        if(buffer->auxMode > AUX_MODE_COUNT){
+            buffer->auxMode = AUX_AUDIO;
+        }
+
+        if(buffer->resMemStart != ((uint32_t) &ConfigData)){
+            buffer->resMemStart == ((uint32_t) &ConfigData);
+        }
+
+        if(buffer->resMemEnd != ((uint32_t) &ConfigData.cfg.stereoSlope)){
+            buffer->resMemEnd == buffer->resMemStart + sizeof(CFGData);
+        }
+
+        if(buffer->USBPID != 0x0002 && (buffer->USBPID >= 0x1010 || buffer->USBPID < 0x1000)){
+            buffer->USBPID = 0x0002;
+        }
+
+        if(buffer->stereoPosition > 127){
+            buffer->stereoPosition = 64;
+        }
+
+        if(buffer->stereoWidth > 64){
+            buffer->stereoWidth = 64;
+        }
+
+        if(buffer->stereoSlope == 0){
+            buffer->stereoSlope = 0xff;
+        }
+
+        memcpy(buffer->fwVersion, updatedCFG->fwVersion, 24);
+        buffer->resMemEnd = updatedCFG->resMemEnd;
+        buffer->resMemStart = updatedCFG->resMemStart;
     }
     
     //overwrite the old data for fwStatus (otherwise the bootloader would just copy stuff again) and the firmware version string
     buffer->fwStatus = 0x10;
-    memcpy(buffer->fwVersion, updatedCFG->fwVersion, 24);
-    buffer->resMemEnd = updatedCFG->resMemEnd;
-    buffer->resMemStart = updatedCFG->resMemStart;
     
     //erase the old and write the new data
     NVM_erasePage(pageStart);
@@ -134,7 +137,7 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
     NVM_memclr4096(NVM_mapMem, MAPMEM_SIZE);
     HID_erasePending = 1;
     HID_currErasePage = NVM_blockMem; 
-    UART_sendString(updatedCFG->fwVersion, 1);
+    UART_sendString(buffer->fwVersion, 1);
 }
 
 void NVM_clearAllCoils(){

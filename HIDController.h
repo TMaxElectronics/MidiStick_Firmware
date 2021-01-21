@@ -3,8 +3,10 @@
 #include "usb lib/usb.h"
 
 //USB Config commands
-#define USB_CMD_LIVE_PREV 0x10
-#define USB_CMD_SET_ADSR_PREV 0x11
+#define USB_CMD_PING                    0x00
+#define USB_CMD_GET_PROTOCOL_VERSION    0x01
+#define USB_CMD_LIVE_PREV               0x10
+#define USB_CMD_SET_ADSR_PREV           0x11
 
 #define USB_CMD_GET_PROGRAMM            0x20
 #define USB_CMD_SET_PROGRAMM            0x21
@@ -25,7 +27,6 @@
 #define USB_CMD_SET_USBPID              0x33
 #define USB_CMD_IS_SAFE                 0x34
 #define USB_GET_CURR_NOTES              0xf0
-#define USB_CMD_PING                    0
 
 #define USB_CMD_ENTER_PROGMODE          0x40
 #define USB_CMD_EXIT_PROGMODE           0x41

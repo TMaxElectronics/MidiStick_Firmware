@@ -18,7 +18,6 @@
       </logicalFolder>
       <itemPath>ConfigManager.h</itemPath>
       <itemPath>MidiController.h</itemPath>
-      <itemPath>NoteManager.h</itemPath>
       <itemPath>UART32.h</itemPath>
       <itemPath>ADSREngine.h</itemPath>
       <itemPath>SignalGenerator.h</itemPath>
@@ -45,7 +44,6 @@
       <itemPath>main.c</itemPath>
       <itemPath>MidiController.c</itemPath>
       <itemPath>ConfigManager.c</itemPath>
-      <itemPath>NoteManager.c</itemPath>
       <itemPath>UART32.c</itemPath>
       <itemPath>ADSREngine.c</itemPath>
       <itemPath>SignalGenerator.c</itemPath>
@@ -73,7 +71,7 @@
         <targetPluginBoard></targetPluginBoard>
         <platformTool>pk4hybrid</platformTool>
         <languageToolchain>XC32</languageToolchain>
-        <languageToolchainVersion>1.44</languageToolchainVersion>
+        <languageToolchainVersion>2.50</languageToolchainVersion>
         <platform>3</platform>
       </toolsSet>
       <packs>
@@ -236,38 +234,6 @@
         <property key="save-temps" value="false"/>
         <property key="wpo-lto" value="false"/>
       </C32Global>
-      <item path="NoteManager.c" ex="true" overriding="false">
-        <C32>
-        </C32>
-        <C32-AR>
-        </C32-AR>
-        <C32-AS>
-        </C32-AS>
-        <C32-CO>
-        </C32-CO>
-        <C32-LD>
-        </C32-LD>
-        <C32CPP>
-        </C32CPP>
-        <C32Global>
-        </C32Global>
-      </item>
-      <item path="NoteManager.h" ex="true" overriding="false">
-        <C32>
-        </C32>
-        <C32-AR>
-        </C32-AR>
-        <C32-AS>
-        </C32-AS>
-        <C32-CO>
-        </C32-CO>
-        <C32-LD>
-        </C32-LD>
-        <C32CPP>
-        </C32CPP>
-        <C32Global>
-        </C32Global>
-      </item>
       <item path="p32MX270F256B.ld" ex="false" overriding="false">
         <C32>
         </C32>

@@ -9,7 +9,6 @@
 #include "usb lib/usb.h"
 #include "MidiController.h"
 #include "ConfigManager.h"
-#include "NoteManager.h"
 #include "UART32.h"
 #include "ADSREngine.h"
 #include "SignalGenerator.h"
@@ -176,71 +175,8 @@ void Midi_run(){
             }else if(cmd == MIDI_CMD_NOTE_ON){
                 
                 if(ReceivedDataBuffer[3] > 0){  //velocity is > 0 -> turn note on && channelData[channel].currStereoVolume > 0
-                    //add note to the list with its velocity
+                    MAPPER_map(ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
                     
-                    //UART_sendString("noteon: ", 0); UART_sendInt(ReceivedDataBuffer[2], 0); UART_sendString(" @ ", 0); UART_sendInt(channel, 1);
-                    
-                    //decide which voice should play the new note
-                    uint8_t currVoice = 0;
-                    unsigned skip = 0;
-                    //if a voice is already playing the note, we can skip it. But we do need to reset its adsr
-                    for(;currVoice < MIDI_VOICECOUNT; currVoice++){
-                        if(Midi_voice[currVoice].currNote == ReceivedDataBuffer[2] && Midi_voice[currVoice].on && Midi_voice[currVoice].currNoteOrigin == channel){
-                            MAPPER_map(currVoice, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                            //UART_sendString("\tskip", 1);
-                            skip = 1;
-                            break;
-                        }
-                    }
-                    
-                    //if we need to use a new voice, use the first off one we find. If there are none, we overwrite the oldest note
-                    if(!skip){
-                        if(Midi_isNoteOff(0)){
-                            MAPPER_map(0, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                        }else if(Midi_isNoteOff(1)){ 
-                            MAPPER_map(1, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                        }else if(Midi_isNoteOff(2)){          
-                            MAPPER_map(2, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                        }else if(Midi_isNoteOff(3)){
-                            MAPPER_map(3, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                            
-                            
-                        }else if(Midi_isNoteDecaying(0)){
-                            MAPPER_map(0, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                        }else if(Midi_isNoteDecaying(1)){ 
-                            MAPPER_map(1, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                        }else if(Midi_isNoteDecaying(2)){          
-                            MAPPER_map(2, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                        }else if(Midi_isNoteDecaying(3)){
-                            MAPPER_map(3, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                            
-                            
-                        }else{
-                            
-                            //UART_print("overwrite: ot[0]=%d, ot[1]=%d, ot[2]=%d, ot[3]=%d", Midi_voice[0].otCurrent, Midi_voice[1].otCurrent, Midi_voice[2].otCurrent, Midi_voice[3].otCurrent);
-                            
-                            uint32_t oldestAge = 0;
-                            uint8_t i = 0;
-                            for(; i < MIDI_VOICECOUNT; i++){
-                                if(Midi_voice[i].noteAge > oldestAge) oldestAge = Midi_voice[i].noteAge;
-                            }
-                            
-                            if(Midi_voice[0].noteAge == oldestAge){ 
-                                MAPPER_map(0, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                                
-                            }else if(Midi_voice[1].noteAge == oldestAge){ 
-                                MAPPER_map(1, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                                
-                            }else if(Midi_voice[2].noteAge == oldestAge){ 
-                                MAPPER_map(2, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                                
-                            }else if(Midi_voice[3].noteAge == oldestAge){ 
-                                MAPPER_map(3, ReceivedDataBuffer[2], ReceivedDataBuffer[3], channel);
-                            }
-                        }
-                    }
-                    
-
                 }else{  //velocity is == 0 -> turn note off (some software uses this instead of the note off command)
                     uint8_t currVoice = 0;
                     for(;currVoice < MIDI_VOICECOUNT; currVoice++){
@@ -325,6 +261,9 @@ void Midi_run(){
                     
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_DAMPER_PEDAL){    //enable/disable the damper pedal
                     channelData[channel].damperPedal = ReceivedDataBuffer[3] > 63;
+                }else if(ReceivedDataBuffer[2] >= 102 && ReceivedDataBuffer[2] <= 119){
+                    channelData[channel].parameters[ReceivedDataBuffer[2] - 102] = ReceivedDataBuffer[3];
+                    //UART_print("Assigned %d to CC %d\r\n", ReceivedDataBuffer[3], ReceivedDataBuffer[2]);
                 }
 
 

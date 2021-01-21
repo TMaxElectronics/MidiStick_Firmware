@@ -31,7 +31,6 @@
 #include "ADSREngine.h"
 
 #include "DLL.h"
-#include "NoteManager.h"
 #include "VMSRoutines.h"
 #include "HIDController.h"
 
@@ -150,6 +149,15 @@ int32_t VMS_getKnownValue(KNOWN_VALUE ID, SynthVoice * voice){
             return voice->portamentoParam;
         case circ1:
             return voice->circ1;
+        case circ2:
+            return voice->circ2;
+        case circ3:
+            return voice->circ3;
+        case circ4:
+            return voice->circ4;
+            
+        case CC_102 ... CC_119:
+            return channelData[voice->currNoteOrigin].parameters[ID - CC_102];
     }
     return 0;
 }
@@ -377,12 +385,11 @@ unsigned VMS_calculateValue(VMS_listDataObject * data){
         }
     }
     
-    int32_t param1 = (block->param1 > 0 && block->param1 < KNOWNVAL_MAX) ? VMS_getKnownValue(block->param1, voice) : block->param1;
-    int32_t param2 = (block->param2 > 0 && block->param2 < KNOWNVAL_MAX) ? VMS_getKnownValue(block->param2, voice) : block->param2;
+    int32_t param1 = (block->flags & VMS_FLAG_ISVARIABLE_PARAM1) ? VMS_getKnownValue(block->param1, voice) : block->param1;
+    int32_t param2 = (block->flags & VMS_FLAG_ISVARIABLE_PARAM2) ? VMS_getKnownValue(block->param2, voice) : block->param2;
+    int32_t param3 = (block->flags & VMS_FLAG_ISVARIABLE_PARAM3) ? VMS_getKnownValue(block->param3, voice) : block->param3;
     
-    /*if(block->param1 > 0 && block->param1 < KNOWNVAL_MAX){
-        UART_print("getting %d\r\n", block->param1);
-    }*/
+    //if(block->flags & VMS_FLAG_ISVARIABLE_PARAM1) UART_print("param1 = %d", param1);
     
     int32_t currFactor = VMS_getCurrentFactor(block->target, voice);
     
@@ -416,7 +423,7 @@ unsigned VMS_calculateValue(VMS_listDataObject * data){
             //if(block->target == frequency) UART_print("frequency lin: factor = %d, param1 = %d\r\n", currFactor, param1);
             break;
         case VMS_SIN:
-            d->currCount += block->param3;
+            d->currCount += param3;
             if(d->currCount > 0xff) d->currCount = -0xff;
             currFactor = ((param1 * qSin(d->currCount)) / 1000);
             currFactor += param2;

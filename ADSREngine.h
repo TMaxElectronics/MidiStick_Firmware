@@ -8,6 +8,11 @@
 #define VMS_DIE 0xdeadbeef
 #define VMS_PREVIEW_MEMSIZE 15000
 
+#define VMS_FLAG_ISVARIABLE_PARAM1          0x00000001
+#define VMS_FLAG_ISVARIABLE_PARAM2          0x00000002
+#define VMS_FLAG_ISVARIABLE_PARAM3          0x00000004
+#define VMS_FLAG_ISVARIABLE_TARGETFACTOR    0x00000008
+
 extern DLLObject * VMS_listHead;
 extern uint8_t * VMSBLOCKS;
 

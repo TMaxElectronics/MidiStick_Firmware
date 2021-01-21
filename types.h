@@ -18,7 +18,7 @@ typedef struct _MapHeader_ MAPTABLE_HEADER;
 typedef enum {TONE_NORMAL, TONE_NOISE, TONE_SINGE_SHOT} ToneType;
 typedef enum {MOD_AM_NOISE, MOD_FM_NOISE, MOD_AM_SWEEP, MOD_FM_SWEEP} ModulationType;
 typedef enum {VMS_EXP, VMS_EXP_INV, VMS_LIN, VMS_SIN, VMS_JUMP} VMS_MODTYPE;
-typedef enum {maxOnTime, minOnTime, onTime, otCurrent, otTarget, otFactor, frequency, freqCurrent, freqTarget, freqFactor, noise, pTime, circ1, KNOWNVAL_MAX} KNOWN_VALUE;
+typedef enum {maxOnTime, minOnTime, onTime, otCurrent, otTarget, otFactor, frequency, freqCurrent, freqTarget, freqFactor, noise, pTime, circ1, circ2, circ3, circ4, CC_102, CC_103, CC_104, CC_105, CC_106, CC_107, CC_108, CC_109, CC_110, CC_111, CC_112, CC_113, CC_114, CC_115, CC_116, CC_117, CC_118, CC_119, KNOWNVAL_MAX} KNOWN_VALUE;
 typedef enum {RISING, FALLING, ANY, NONE} DIRECTION;
 typedef enum {INVERTED = 0, NORMAL = 1} NOTEOFF_BEHAVIOR;
 
@@ -75,6 +75,9 @@ struct _SynthVoice_{
     int32_t     portamentoParam;
     
     int32_t     circ1;
+    int32_t     circ2;
+    int32_t     circ3;
+    int32_t     circ4;
     
     uint8_t     id;
     MAPTABLE_DATA * map;
@@ -93,6 +96,7 @@ struct _ChannelInfo_{
     uint16_t        currOT;
     int32_t         portamentoTime;
     uint32_t        lastFrequency;
+    uint8_t         parameters[18];
     
     uint16_t        currVolume;
     uint16_t        currStereoVolume;

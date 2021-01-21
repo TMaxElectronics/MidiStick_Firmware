@@ -16,7 +16,6 @@
 #include "UART32.h"
 
 #define VMS_RAMSIZE 4096
-#define PROTOCOL_VERSION 1
 
 uint32_t HID_currErasePage = 0;
 unsigned HID_erasePending;
@@ -39,8 +38,8 @@ void VMS_relinkAll();
 void VMS_relinkRamList();
 
 void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t dataSize) {
-    if(input[0] == PROTOCOL_VERSION){
-        output[0] = 1;
+    if(input[0] == USB_CMD_GET_PROTOCOL_VERSION){
+        output[0] = 2;
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     
     }else if(input[0] == USB_CMD_VMS_CLEARBLOCKS){
@@ -83,9 +82,9 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             VMS_currWriteOffset = (void*) VMS_findFreeSpace();
         }
         
-        memcpy(&VMS_currWriteBuffer[lastVMSBlock], input + 1, sizeof(VMS_BLOCK));
+        memcpy(&VMS_currWriteBuffer[lastVMSBlock], input + 1, sizeof(VMS_BLOCK) - 1);
         
-        //UART_print("got Block %d! (placed at 0x%08x)\r\n", lastVMSBlock, &VMS_currWriteBuffer[lastVMSBlock]);
+        //UART_print("got Block %d! flags = 0x%08x\r\n", lastVMSBlock, VMS_currWriteBuffer[lastVMSBlock].flags);
         
         lastVMSBlock++;
         
@@ -147,7 +146,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         if(HID_currMapHeader == 0) UART_print("FUUUUUCK no ram :(\r\n");
         
         memcpy(HID_currMapHeader, receivedHeader, sizeof(MAPTABLE_HEADER));
-        UART_print("start map \"%.18s\"table write for program %d with %d items\r\n", HID_currMapHeader->name, HID_currMapHeader->programNumber, HID_currMapHeader->listEntries);
+        //UART_print("start map \"%.18s\"table write for program %d with %d items\r\n", HID_currMapHeader->name, HID_currMapHeader->programNumber, HID_currMapHeader->listEntries);
         
         output[0] = 1;
         handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);

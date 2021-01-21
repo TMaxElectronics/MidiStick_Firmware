@@ -10,10 +10,9 @@ usb\ lib/usb_hal.h  \
 MidiController.h  \
 ConfigManager.h  \
 types.h  \
- NoteManager.h  \
-UART32.h  \
+ UART32.h  \
 ADSREngine.h  \
 SignalGenerator.h  \
 VMSRoutines.h  \
- mapper.h  \
-HIDController.h 
+mapper.h  \
+ HIDController.h 
