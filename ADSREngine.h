@@ -44,12 +44,14 @@ void VMS_clear();
 void VMS_nextBlock(VMS_listDataObject * data, unsigned blockSet);
 void VMS_addBlockToList(VMS_BLOCK * block, SynthVoice * voice);
 void VMS_removeBlockFromList(VMS_listDataObject * target);
-unsigned VMS_hasReachedThreshold(VMS_BLOCK * block, int32_t factor, unsigned customDirection);
+unsigned VMS_hasReachedThreshold(VMS_BLOCK * block, int32_t factor, int32_t targetFactor, int32_t param1);
 int32_t VMS_getCurrentFactor(KNOWN_VALUE ID, SynthVoice * voice);
 void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice);
 int32_t VMS_getKnownValue(KNOWN_VALUE ID, SynthVoice * voice);
 void VMS_resetVoice(SynthVoice * voice, VMS_BLOCK * startBlock);
 int32_t VMS_getParam(VMS_BLOCK * block, SynthVoice * voice, uint8_t param);
+int32_t VMS_getParameter(uint8_t param, VMS_BLOCK * block, SynthVoice * voice);
+DIRECTION VMS_getThresholdDirection(VMS_BLOCK * block, int32_t param1);
 void VMS_run();
 void VMS_init();
 

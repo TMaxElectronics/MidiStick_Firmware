@@ -46,8 +46,8 @@ CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};           
  */
 
 //initialize the default configuration
-const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = 1, .cfg.ledMode2 = 3, .cfg.ledMode3 = 2, .cfg.auxMode = 0, .cfg.fwVersion = "V1.1"
-    , .cfg.fwStatus = 0x22, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.stereoSlope), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x0002, 
+const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = LED_DUTY_LIMITER, .cfg.ledMode2 = LED_POWER, .cfg.ledMode3 = LED_DATA, .cfg.auxMode = 0, .cfg.fwVersion = "V1.1"
+    , .cfg.fwStatus = 0x11, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.stereoSlope), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x0002, 
     .cfg.stereoPosition = 64, .cfg.stereoWidth = 16, .cfg.stereoSlope = 255};
 
 const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {FORCE_SETTINGS_OVERRIDE};                               //dummy data
@@ -91,7 +91,7 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
     CFGData * buffer = malloc(PAGE_SIZE);
     memcpy(buffer, pageStart, PAGE_SIZE);
     
-    if(ConfigData.cfg.fwStatus != 0x22){
+    if(ConfigData.cfg.fwStatus != 0x11){
         //make sure all parameters are within their valid range, if one is outside it, write the default value
         //This is needed if a setting was added, as the value at that location is not predictable, and could potenitally cause problems
         //If for example a device with V0.9 was updated to V0.91 (where the custom Pids were added) it would have a pid of 0x3e1, which would effectively soft brick the device

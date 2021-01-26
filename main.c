@@ -138,6 +138,8 @@ void main(void) {
     
     UART_sendString("Stick is ready!", 1);
     
+    Midi_LED(LED_POWER, LED_ON);
+    
     uint32_t lastRun = 0;
     while(1){   //run the required tasks
         USBDeviceTasks();
@@ -169,7 +171,7 @@ void initIO(){
     ODCBSET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
     
     LATBSET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
-    LATBCLR = _LATB_LATB5_MASK | _LATB_LATB8_MASK | _LATB_LATB15_MASK;
+    LATBCLR = _LATB_LATB5_MASK  | _LATB_LATB15_MASK;
 }
 
 void initUSB() {

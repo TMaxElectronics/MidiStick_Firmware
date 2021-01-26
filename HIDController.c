@@ -45,6 +45,7 @@ void VMS_relinkMaptable(MAPTABLE_HEADER * listStart);
 VMS_BLOCK * VMS_findFreeSpace();
 void VMS_unlink(VMS_BLOCK * block);
 void VMS_unlinkMapEntry(MAPTABLE_ENTRY * entry);
+unsigned isValidAddress(void * data);
 void VMS_relinkAll();
 void VMS_relinkRamList();
 
@@ -412,21 +413,31 @@ void VMS_relinkAll(){
 void VMS_unlink(VMS_BLOCK * block){
     if(block < 0xa0000000 || block > 0xa0010000) return; //can't write into anything but ram
     if(block->offBlock == 0xffffffff) return;
-    if(block->offBlock > 0x1000 && block->offBlock != VMS_DIE) block->offBlock = block->offBlock->uid;
+    if(isValidAddress(block->offBlock) && block->offBlock != VMS_DIE) block->offBlock = block->offBlock->uid;
     uint8_t i;
     for(i = 0; i < VMS_MAX_BRANCHES; i ++){
         //UART_print("unlink 0x%08x\r\n", block->nextBlocks[i]);
-        if(block->nextBlocks[i] > 0x1000 && block->nextBlocks[i] != VMS_DIE){
-            block->nextBlocks[i] = block->nextBlocks[i]->uid;
+        if(isValidAddress(block->nextBlocks[i])){
+            if(block->nextBlocks[i] != VMS_DIE) block->nextBlocks[i] = block->nextBlocks[i]->uid;
+        }else{
+            block->nextBlocks[i] = 0xffffffff;
         }
     }
     //UART_print("done!\r\n");
 }
 
+unsigned isValidAddress(void * data){
+    return (data > 0xa0000000 && data < 0xa0010000) || (data > 0x9d000000 && data < 0x9d040000);
+}
+
 void VMS_unlinkMapEntry(MAPTABLE_ENTRY * entry){
     if(entry < 0xa0000000 || entry > 0xa0010000) return; //can't write into anything but ram
     //UART_print("start = 0x%08x -> ", entry->data.VMS_Startblock);
-    if(entry->data.VMS_Startblock > 0x1000 && entry->data.VMS_Startblock != VMS_DIE) entry->data.VMS_Startblock = entry->data.VMS_Startblock->uid;
+    if(isValidAddress(entry->data.VMS_Startblock)){
+        if(entry->data.VMS_Startblock != VMS_DIE) entry->data.VMS_Startblock = entry->data.VMS_Startblock->uid;
+    }else{
+        entry->data.VMS_Startblock = 0xffffffff;
+    }
     //UART_print("0x%08x\r\n", entry->data.VMS_Startblock);
 }
 

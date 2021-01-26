@@ -141,6 +141,12 @@ struct _VMS_listDataObject_{
     uint32_t period;
 };
 
+typedef struct{
+    KNOWN_VALUE sourceId    : 8;
+    int32_t     rangeStart  : 12;
+    int32_t     rangeEnd    : 12;
+} RangeParameters;
+
 struct _VMS_BLOCK_{
     uint32_t uid;
     VMS_BLOCK * nextBlocks[VMS_MAX_BRANCHES];
