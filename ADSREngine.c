@@ -236,12 +236,13 @@ int32_t VMS_getCurrentFactor(KNOWN_VALUE ID, SynthVoice * voice){
 }
 
 unsigned VMS_hasReachedThreshold(VMS_BLOCK * block, int32_t factor, int32_t targetFactor, int32_t param1){
+    if(block->type == VMS_JUMP) return 1;
     
     switch(VMS_getThresholdDirection(block, param1)){
         case RISING:
-            return factor >= block->targetFactor;
+            return factor >= targetFactor;
         case FALLING:
-            return factor <= block->targetFactor;
+            return factor <= targetFactor;
         case NONE:
             return 0;
     }
