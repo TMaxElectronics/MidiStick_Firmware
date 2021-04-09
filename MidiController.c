@@ -61,16 +61,6 @@ static USB_HANDLE Midi_configRxHandle;
 
 //Global midi settings
 
-//variables used for the limitation of signal parameters
-unsigned noteHoldoff = 0;
-uint16_t halfLimit = 0;
-uint16_t otLimit = 0;
-int32_t accumulatedOnTime = 0;
-uint16_t resetCounter = 0;
-uint16_t dutyLimiter = 0;
-uint32_t noteOffTime = 1;
-uint16_t holdOff = 0;
-
 //LED Time variables
 unsigned Midi_blinkLED = 0;
 uint16_t Midi_blinkScaler = 0;
@@ -102,13 +92,16 @@ void Midi_init(){
         channelData[currChannel].currVolumeModifier = 32385;
         MAPPER_programChangeHandler(currChannel, 0);
     }
-    NVM_readCoilConfig(Midi_currCoil, 0xff);
     
-    //calculate required coefficients
-    //Midi_setNoteOnTime(Midi_currCoil->minOnTime + ((Midi_currCoil->maxOnTime * Midi_currVolume) / 127), 0);
-    holdOff = (Midi_currCoil->holdoffTime * 100) / 133;
-    halfLimit = (Midi_currCoil->ontimeLimit * 100) / 266;
-    otLimit = (Midi_currCoil->ontimeLimit * 100) / 133;
+    if(NVM_getExpConfig()->flags & CONFIG_KEEP_CC){
+        if(!NVM_readCoilConfig(Midi_currCoil, NVM_getExpConfig()->selectedCC)){
+            NVM_updateSelectedCC(0xff);
+        }else{
+            Midi_currCoilIndex = NVM_getExpConfig()->selectedCC;
+        }
+    }else{
+        NVM_readCoilConfig(Midi_currCoil, 0xff);
+    }
     
     //random s(1)ee(7), used for the noise source
     srand(1337);
@@ -231,8 +224,8 @@ void Midi_run(){
                         channelData[currChannel].bendFactor = 200000;
                         channelData[currChannel].bendRange = 2.0;
                         channelData[currChannel].currVolume = 127;
-                        channelData[currChannel].currStereoVolume = 0xff;
                         channelData[currChannel].currStereoPosition = 64;
+                        Midi_calculateStereoVolume(currChannel);
                         channelData[currChannel].currVolumeModifier = 32385;
                         channelData[currChannel].sustainPedal = 0;
                     }
@@ -304,8 +297,8 @@ void Midi_run(){
         Midi_dataHandle = USBRxOnePacket(USB_DEVICE_AUDIO_MIDI_ENDPOINT,(uint8_t*)&ReceivedDataBuffer,64);
     }
     
-    if(!USBHandleBusy(Midi_configRxHandle))
-    {
+    if(!USBHandleBusy(Midi_configRxHandle)){
+        
         if(!progMode){
             //New data is available at the configuration endpoint
             //TODO create structs for the data packets, so we don't have to do this ugly stuff
@@ -355,9 +348,6 @@ void Midi_run(){
                 if(Midi_currCoilIndex == ConfigReceivedDataBuffer[1]){
                     Midi_currCoilIndex = ConfigReceivedDataBuffer[1];
                     NVM_readCoilConfig(Midi_currCoil, Midi_currCoilIndex);
-                    halfLimit = (Midi_currCoil->ontimeLimit * 100) / 266;
-                    otLimit = (Midi_currCoil->ontimeLimit * 100) / 133;
-                    holdOff = (Midi_currCoil->holdoffTime * 100) / 133;
                     uint8_t currChannel = 0;
                     for(;currChannel < 16; currChannel++){                      //update the on time values, incase we have a different min/max from before
                         Midi_setNoteOnTime(Midi_currCoil->minOnTime + ((Midi_currCoil->maxOnTime * channelData[currChannel].currVolume * channelData[currChannel].currStereoVolume) / 127 / 0xff), currChannel);
@@ -382,21 +372,26 @@ void Midi_run(){
                 Midi_LED(LED_POWER, LED_ON);    //turn on the power LED again, as it might be a different one from before
                 Midi_setEnabled(1);
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_STERO_CONFIG){        //write device stereo config
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_EXP_DEVCFG){        //read device configuration parameters
+                ToSendDataBuffer[0] = USB_CMD_GET_EXP_DEVCFG;
+                memcpy(&ToSendDataBuffer[1], NVM_getExpConfig(), 63);  //28 = sizeof(CFGData), ignoring device specific stuff, the PC gets through other API calls
+                Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
+
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_EXP_DEVCFG){        //write device configuration parameters
                 Midi_setEnabled(0);
-                NVM_writeStereoParameters(ConfigReceivedDataBuffer[1], ConfigReceivedDataBuffer[2], ConfigReceivedDataBuffer[3]);
-                
-                uint8_t currChannel = 0;
-                for(;currChannel < 16; currChannel ++){
-                    Midi_calculateStereoVolume(currChannel);
-                }
+                EXPCFGData * newData = malloc(sizeof(EXPCFGData));
+                memcpy(newData, &ConfigReceivedDataBuffer[1], sizeof(EXPCFGData));
+                NVM_writeExpCFG(newData);
+                free(newData);
                 Midi_setEnabled(1);
 
-            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_STERO_CONFIG){        //write device stereo config
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_STERO_CONFIG){        //write device stereo config (deprecated)
+                
+            }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_STERO_CONFIG){        //read device stereo config  (deprecated, should be read with the normal config)
                 ToSendDataBuffer[0] = USB_CMD_GET_STERO_CONFIG;
-                ToSendDataBuffer[1] = NVM_getConfig()->stereoPosition;
-                ToSendDataBuffer[2] = NVM_getConfig()->stereoWidth;
-                ToSendDataBuffer[3] = NVM_getConfig()->stereoSlope;
+                ToSendDataBuffer[1] = NVM_getExpConfig()->stereoPosition;
+                ToSendDataBuffer[2] = NVM_getExpConfig()->stereoWidth;
+                ToSendDataBuffer[3] = NVM_getExpConfig()->stereoSlope;
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
                 
             }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_COILCONFIG_INDEX){  //read which coil preset is in use
@@ -408,14 +403,12 @@ void Midi_run(){
                 if(Midi_areAllNotesOff){  //only allow for changing the coil if we are not playing any music
                     Midi_currCoilIndex = ConfigReceivedDataBuffer[1];
                     NVM_readCoilConfig(Midi_currCoil, Midi_currCoilIndex);
-                    halfLimit = (Midi_currCoil->ontimeLimit * 100) / 266;
-                    otLimit = (Midi_currCoil->ontimeLimit * 100) / 133;
-                    holdOff = (Midi_currCoil->holdoffTime * 100) / 133;
                     uint8_t currChannel = 0;
                     for(;currChannel < 16; currChannel++){                      //update the on time values, incase we have a different min/max from before
                         Midi_setNoteOnTime(Midi_currCoil->minOnTime + ((Midi_currCoil->maxOnTime * channelData[currChannel].currVolume * channelData[currChannel].currStereoVolume) / 127 / 0xff), currChannel);
                     }
                     ToSendDataBuffer[0] = USB_CMD_SET_COILCONFIG_INDEX;
+                    NVM_updateSelectedCC(Midi_currCoilIndex);
                     UART_sendString("new CC: ot lim ", 0); UART_sendInt(Midi_currCoil->ontimeLimit, 0); UART_sendString(" OT Max ", 0); UART_sendInt(Midi_currCoil->maxOnTime, 0); UART_sendString(" duty Max ", 0); UART_sendInt(Midi_currCoil->maxDuty, 1);
                     ToSendDataBuffer[1] = NVM_isCoilConfigValid(Midi_currCoilIndex) ? Midi_currCoilIndex : 0xff;
                 }else{
@@ -488,7 +481,7 @@ void Midi_run(){
             }else if(ConfigReceivedDataBuffer[0] == USB_CMD_PING){
                 //called by the software every 250ms to check for device presence... no response or action required
             }else{
-                HID_parseCMD(ConfigReceivedDataBuffer, ToSendDataBuffer, Midi_configTxHandle, 64);
+                HID_parseCMD(ConfigReceivedDataBuffer, ToSendDataBuffer, &Midi_configTxHandle, 64);
             }
 
         }else{
@@ -605,9 +598,9 @@ unsigned Midi_areAllNotesOff(){
 
 //stereo volume mapping
 void Midi_calculateStereoVolume(uint8_t channel){
-    uint8_t stereoPosition = NVM_getConfig()->stereoPosition;
-    uint8_t stereoWidth = NVM_getConfig()->stereoWidth;
-    uint8_t stereoSlope = NVM_getConfig()->stereoSlope;
+    uint8_t stereoPosition = NVM_getExpConfig()->stereoPosition;
+    uint8_t stereoWidth = NVM_getExpConfig()->stereoWidth;
+    uint8_t stereoSlope = NVM_getExpConfig()->stereoSlope;
     
     int16_t sp = channelData[channel].currStereoPosition;
     int16_t rsStart = (stereoPosition - stereoWidth - 255/stereoSlope);

@@ -46,13 +46,14 @@ CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};           
  */
 
 //initialize the default configuration
-const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = LED_DUTY_LIMITER, .cfg.ledMode2 = LED_POWER, .cfg.ledMode3 = LED_DATA, .cfg.auxMode = 0, .cfg.fwVersion = "V1.1"
-    , .cfg.fwStatus = 0x11, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.cfg.stereoSlope), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x0002, 
-    .cfg.stereoPosition = 64, .cfg.stereoWidth = 16, .cfg.stereoSlope = 255};
+const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = LED_DUTY_LIMITER, .cfg.ledMode2 = LED_POWER, .cfg.ledMode3 = LED_DATA, .cfg.auxMode = 0, .cfg.fwVersion = "V1.2"
+    , .cfg.fwStatus = 0x11, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.expCfg.selectedCC), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x6162, 
+    .expCfg.stereoPosition = 64, .expCfg.stereoWidth = 16, .expCfg.stereoSlope = 255, .expCfg.flags = CONFIG_KEEP_CC, .expCfg.selectedCC = 0xff};
 
 const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {FORCE_SETTINGS_OVERRIDE};                               //dummy data
 const volatile uint8_t NVM_mapMem[MAPMEM_SIZE] __attribute__((space(fwUpgradeReserved), address(0x9d020000 + BYTE_PAGE_SIZE))) = {0};                       //dummy data
 const volatile uint8_t NVM_blockMem[BLOCKMEM_SIZE] __attribute__((space(fwUpgradeReserved), address(0x9d020000 + BYTE_PAGE_SIZE + MAPMEM_SIZE))) = {0};     //dummy data
+
 //erase all memory possibly containing previous firmware updates
 void NVM_eraseFWUpdate(){ 
     NVM_memclr4096(&FWUpdate, 0x1f000);
@@ -89,6 +90,7 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
     CFGData * updatedCFG = (CFGData *) ((uint32_t) &ConfigData.cfg + 0x20000);  //this loads the FW information from the region of the updated firmware
     
     CFGData * buffer = malloc(PAGE_SIZE);
+    EXPCFGData * expBuffer = (EXPCFGData *) ((uint32_t) buffer + ((uint32_t) &ConfigData.expCfg - (uint32_t) &ConfigData.cfg));
     memcpy(buffer, pageStart, PAGE_SIZE);
     
     if(ConfigData.cfg.fwStatus != 0x11){
@@ -114,37 +116,29 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
         if(buffer->auxMode > AUX_MODE_COUNT){
             buffer->auxMode = AUX_AUDIO;
         }
-
-        if(buffer->resMemStart != ((uint32_t) &ConfigData)){
-            buffer->resMemStart == ((uint32_t) &ConfigData);
+ 
+        if(!(buffer->USBPID >= 0x6162 && buffer->USBPID < 0x6169)){
+            buffer->USBPID = 0x6162;
         }
 
-        if(buffer->resMemEnd != ((uint32_t) &ConfigData.cfg.stereoSlope)){
-            buffer->resMemEnd == buffer->resMemStart + sizeof(CFGData);
+        if(expBuffer->stereoPosition > 127){
+            expBuffer->stereoPosition = 0;
         }
 
-        if(buffer->USBPID != 0x0002 && (buffer->USBPID >= 0x1010 || buffer->USBPID < 0x1000)){
-            buffer->USBPID = 0x0002;
+        if(expBuffer->stereoWidth > 65){
+            expBuffer->stereoWidth = 64;
         }
 
-        if(buffer->stereoPosition > 127){
-            buffer->stereoPosition = 64;
+        if(expBuffer->stereoSlope == 0){
+            expBuffer->stereoSlope = 0xff;
         }
 
-        if(buffer->stereoWidth > 64){
-            buffer->stereoWidth = 64;
-        }
-
-        if(buffer->stereoSlope == 0){
-            buffer->stereoSlope = 0xff;
-        }
-
-        memcpy(buffer->fwVersion, updatedCFG->fwVersion, 24);
+        memcpy(buffer->fwVersion, updatedCFG->fwVersion, 22);
         buffer->resMemEnd = updatedCFG->resMemEnd;
         buffer->resMemStart = updatedCFG->resMemStart;
     }
     
-    //overwrite the old data for fwStatus (otherwise the bootloader would just copy stuff again) and the firmware version string
+    //overwrite the old data for fwStatus (otherwise the bootloader would just copy stuff again)
     buffer->fwStatus = 0x10;
     
     //erase the old and write the new data
@@ -152,11 +146,13 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
     NVM_memcpy128(pageStart, buffer, PAGE_SIZE);
     free(buffer);
     
+#ifndef __DEBUG
     Midi_setEnabled(0);
     NVM_memclr4096(NVM_mapMem, MAPMEM_SIZE);
     HID_erasePending = 1;
     HID_currErasePage = NVM_blockMem; 
     UART_sendString(buffer->fwVersion, 1);
+#endif
 }
 
 void NVM_clearAllCoils(){
@@ -173,8 +169,7 @@ unsigned NVM_writeCFG(CFGData * src){
     memcpy(settingsBuffer, pageStart, PAGE_SIZE);
     
     //overwrite old data with the new
-    uint32_t dataOffset = 0; //subtract actual data position from offset to get relative offset in copied data
-    memcpy(settingsBuffer + dataOffset, src, 28);
+    memcpy(settingsBuffer, src,  28);
     
     //calculate the offset to the usb name string
     uint32_t usbNameOffset = (uint32_t) ConfigData.devName.string - (uint32_t) pageStart;
@@ -194,39 +189,58 @@ unsigned NVM_writeCFG(CFGData * src){
     return 1;
 }
 
-unsigned NVM_updateDevicePID(uint16_t newPID){
-    if(newPID != 0x0002 && (newPID < 0x1000 || newPID > 0x1010)) return 0;
+unsigned NVM_writeExpCFG(EXPCFGData * src){
     void* pageStart = (void*) &ConfigData.cfg; //the page containing the config data starts here and contains the coil configs as well
     
     //copy page data to ram
     void* settingsBuffer = malloc(PAGE_SIZE);
     memcpy(settingsBuffer, pageStart, PAGE_SIZE);
+    EXPCFGData * data = (EXPCFGData *) ((uint32_t) settingsBuffer + ((uint32_t) &ConfigData.expCfg - (uint32_t) &ConfigData.cfg));
     
-    CFGData * currCFG = settingsBuffer;
+    //copy settings that cannot be changed by the config software
+    src->selectedCC = data->selectedCC;
     
-    currCFG->USBPID = newPID;
+    //overwrite old data with the new
+    memcpy(data, src, sizeof(EXPCFGData));
     
     //erase the page and write data from ram
     NVM_erasePage(pageStart);
     NVM_memcpy128(pageStart, settingsBuffer, PAGE_SIZE);
-    UART_sendString("write:  ", 0); UART_sendInt(ConfigData.cfg.USBPID, 1); 
+    //UART_sendString("write:  ", 0); UART_sendString(ConfigData.cfg.name, 1); 
     free(settingsBuffer);
     return 1;
 }
 
-
-unsigned NVM_writeStereoParameters(uint8_t c, uint8_t w, uint8_t s){
+unsigned NVM_updateSelectedCC(uint8_t selected){
+    if(selected > 32 && selected != 0xff) return 0;
     void* pageStart = (void*) &ConfigData.cfg; //the page containing the config data starts here and contains the coil configs as well
     
     //copy page data to ram
     void* settingsBuffer = malloc(PAGE_SIZE);
     memcpy(settingsBuffer, pageStart, PAGE_SIZE);
     
-    CFGData * currCFG = settingsBuffer;
+    EXPCFGData * data = (EXPCFGData *) ((uint32_t) settingsBuffer + ((uint32_t) &ConfigData.expCfg - (uint32_t) &ConfigData.cfg));
     
-    currCFG->stereoPosition = c;
-    currCFG->stereoWidth = w;
-    currCFG->stereoSlope = s;
+    data->selectedCC = selected;
+    
+    //erase the page and write data from ram
+    NVM_erasePage(pageStart);
+    NVM_memcpy128(pageStart, settingsBuffer, PAGE_SIZE);
+    free(settingsBuffer);
+    return 1;
+}
+
+unsigned NVM_updateDevicePID(uint16_t newPID){
+    if(!(newPID >= 0x6162 && newPID < 0x6169)) return 0;
+    void* pageStart = (void*) &ConfigData.cfg; //the page containing the config data starts here and contains the coil configs as well
+    
+    //copy page data to ram
+    void* settingsBuffer = malloc(PAGE_SIZE);
+    memcpy(settingsBuffer, pageStart, PAGE_SIZE);
+    
+    CFGData * currCFG = (CFGData *) settingsBuffer;
+    
+    currCFG->USBPID = newPID;
     
     //erase the page and write data from ram
     NVM_erasePage(pageStart);
@@ -361,6 +375,11 @@ unsigned int __attribute__((nomips16)) NVM_operation(unsigned int nvmop){
 //get the pointer to the cfg data
 CFGData * NVM_getConfig(){
     return &ConfigData.cfg;
+}
+
+//get the pointer to the cfg data
+EXPCFGData * NVM_getExpConfig(){
+    return &ConfigData.expCfg;
 }
 
 //temporary storage of the crc result

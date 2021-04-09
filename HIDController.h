@@ -45,6 +45,8 @@
 #define USB_CMD_BLINK                   0x32
 #define USB_CMD_SET_USBPID              0x33
 #define USB_CMD_IS_SAFE                 0x34
+#define USB_CMD_SET_EXP_DEVCFG          0x35
+#define USB_CMD_GET_EXP_DEVCFG          0x36
 #define USB_GET_CURR_NOTES              0xf0
 
 #define USB_CMD_ENTER_PROGMODE          0x40
@@ -83,4 +85,4 @@
 extern uint32_t HID_currErasePage;
 extern unsigned HID_erasePending;
 
-void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t dataSize);
+void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_t dataSize);

@@ -70,11 +70,18 @@ typedef struct{
     char compileDate[20];
     char compileTime[20];
     uint16_t USBPID;
+} CFGData;
+
+#define CONFIG_KEEP_CC 0b1
     
+typedef struct{
     uint8_t stereoPosition;
     uint8_t stereoWidth;
     uint8_t stereoSlope;
-} CFGData;
+    
+    uint8_t flags;
+    uint8_t selectedCC;
+} EXPCFGData;
 
 typedef struct {
     uint8_t bLength;
@@ -86,6 +93,7 @@ typedef struct {
 typedef struct {
     CoilConfig coils[32];
     CFGData cfg;
+    EXPCFGData expCfg;
     USBDevNameHeader devName;
 } CONF;
 
@@ -111,8 +119,8 @@ void NVM_eraseFWUpdate();
 void NVM_writeFWUpdate(void* src, uint32_t pageOffset);
 
 unsigned NVM_writeCFG(CFGData * src);
+unsigned NVM_writeExpCFG(EXPCFGData * src);
 unsigned NVM_updateDevicePID(uint16_t newPID);
-unsigned NVM_writeStereoParameters(uint8_t c, uint8_t w, uint8_t s);
 
 void NVM_memclr4096(void* start, uint32_t length);
 void NVM_memcpy4(void * dst, void * src, uint32_t length);
@@ -129,6 +137,7 @@ unsigned int __attribute__((nomips16)) NVM_operation(unsigned int nvmop);
 uint32_t NVM_getUpdateCRC();
 void NVM_crc(uint8_t data);
 CFGData * NVM_getConfig();
+EXPCFGData * NVM_getExpConfig();
 void NVM_commitFWUpdate(unsigned settingsOverwrite);
 char * NVM_getFWVersionString();
 char * NVM_getBootloaderVersionString() ;

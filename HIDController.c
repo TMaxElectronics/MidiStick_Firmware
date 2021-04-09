@@ -49,10 +49,11 @@ unsigned isValidAddress(void * data);
 void VMS_relinkAll();
 void VMS_relinkRamList();
 
-void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t dataSize) {
+void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_t dataSize) {
+    UART_print("handling command\r\n");
     if(input[0] == USB_CMD_GET_PROTOCOL_VERSION){
-        output[0] = 2;
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        output[0] = 3;
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     
     }else if(input[0] == USB_CMD_VMS_CLEARBLOCKS){
         Midi_setEnabled(0);
@@ -65,7 +66,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         HID_currErasePage = NVM_blockMem;
         
         output[0] = 1;
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_CMD_VMS_ERASECHECK){
         output[0] = USB_CMD_VMS_ERASECHECK;
@@ -73,7 +74,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         output[2] = 0;
         output[3] = 0;
         output[4] = HID_erasePending;
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_CMD_VMS_WRITEBLOCK){
         if(Midi_enabled) Midi_setEnabled(0);
@@ -101,7 +102,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         lastVMSBlock++;
         
         output[0] = 1;
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_VMS_GETMAXBLOCKCOUNT){
         uint32_t count = BLOCKMEM_SIZE / sizeof(VMS_BLOCK);
@@ -109,7 +110,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         output[0] = count >> 8;
         output[1] = count & 0xff;
         output[2] = sizeof(VMS_BLOCK);
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_VMS_RELINK){
         //UART_print("got relink command!\r\n");
@@ -127,7 +128,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         }
 
         output[0] = (HID_blocklistState == LISTSTATE_NORMAL);
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         Midi_setEnabled(1);
         
     }else if(input[0] == USB_MAP_CLEAR){
@@ -161,7 +162,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         //UART_print("start map \"%.18s\"table write for program %d with %d items\r\n", HID_currMapHeader->name, HID_currMapHeader->programNumber, HID_currMapHeader->listEntries);
         
         output[0] = 1;
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_MAP_WRITEENTRY){
         output[0] = 0;
@@ -178,7 +179,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             output[0] = 1;
         }
         
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_MAP_ENDENTRY){        
         output[0] = 0;
@@ -202,7 +203,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             output[0] = 1;
         }
         
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_MAP_ENDALL){        
         output[0] = 0;
@@ -217,7 +218,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
         }
         Midi_setEnabled(1);
         
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     }else if(input[0] == USB_VMS_READ_BLOCK){  
         output[0] = USB_VMS_READ_BLOCK;
         if(!HID_erasePending){
@@ -240,7 +241,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             memset(&output[1], 0xff, 63);
         }
         
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_MAP_READ_HEADER){ 
         output[0] = USB_MAP_READ_HEADER; 
@@ -266,7 +267,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             memset(&output[1], 0xff, 63);
         }
         
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     }else if(input[0] == USB_MAP_READ_ENTRY){  
         uint16_t currEntry = input[1];
         uint16_t currHeader = input[2];
@@ -293,7 +294,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE handle, uint8_t 
             memset(&output[1], 0xff, 63);
         }
         
-        handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     }
 }
 
@@ -418,8 +419,8 @@ void VMS_unlink(VMS_BLOCK * block){
     for(i = 0; i < VMS_MAX_BRANCHES; i ++){
         //UART_print("unlink 0x%08x\r\n", block->nextBlocks[i]);
         if(isValidAddress(block->nextBlocks[i])){
-            if(block->nextBlocks[i] != VMS_DIE) block->nextBlocks[i] = block->nextBlocks[i]->uid;
-        }else{
+            block->nextBlocks[i] = block->nextBlocks[i]->uid;
+        }else if(block->nextBlocks[i] != VMS_DIE){
             block->nextBlocks[i] = 0xffffffff;
         }
     }

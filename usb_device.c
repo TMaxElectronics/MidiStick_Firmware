@@ -2919,7 +2919,9 @@ static void USBStdFeatureReqHandler(void)
             #if (USB_PING_PONG_MODE == USB_PING_PONG__ALL_BUT_EP0) || (USB_PING_PONG_MODE == USB_PING_PONG__FULL_PING_PONG)   
                 //toggle over the to the non-active BDT
                 p = (BDT_ENTRY*)(((uintptr_t)p) ^ USB_NEXT_PING_PONG);  
-
+                
+                if(p == 0) return;
+                
                 if(p->STAT.UOWN == 1)
                 {
                     //Clear UOWN and set DTS state so it will be correct the next time
