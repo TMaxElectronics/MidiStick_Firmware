@@ -22,10 +22,10 @@
       <itemPath>ADSREngine.h</itemPath>
       <itemPath>SignalGenerator.h</itemPath>
       <itemPath>VMSRoutines.h</itemPath>
-      <itemPath>DLL.h</itemPath>
       <itemPath>types.h</itemPath>
       <itemPath>mapper.h</itemPath>
       <itemPath>HIDController.h</itemPath>
+      <itemPath>DLL.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -48,9 +48,9 @@
       <itemPath>ADSREngine.c</itemPath>
       <itemPath>SignalGenerator.c</itemPath>
       <itemPath>VMSRoutines.c</itemPath>
-      <itemPath>DLL.c</itemPath>
       <itemPath>mapper.c</itemPath>
       <itemPath>HIDController.c</itemPath>
+      <itemPath>DLL.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -308,6 +308,8 @@
         <property key="memories.programmemory" value="true"/>
         <property key="memories.programmemory.ranges" value="1d000000-1d03ffff"/>
         <property key="poweroptions.powerenable" value="false"/>
+        <property key="programmerToGoFilePath"
+                  value="F:/OneDrive/MPLab Projects/Synth.X/debug/default/Synth_ptg"/>
         <property key="programmerToGoImageName" value="Synth_ptg"/>
         <property key="programoptions.donoteraseauxmem" value="false"/>
         <property key="programoptions.eraseb4program" value="true"/>
