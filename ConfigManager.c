@@ -27,7 +27,7 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
 
-#define FORCE_SETTINGS_OVERRIDE 0
+#define FORCE_SETTINGS_OVERRIDE 1
 
 MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
 CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};                              //default coil must not output anything, so the max on time is set to zero
