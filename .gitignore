@@ -3,3 +3,4 @@
 *.elf
 *.o
 *.d
+dist/default/production/memoryfile.xml
