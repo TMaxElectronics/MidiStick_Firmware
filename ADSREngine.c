@@ -176,6 +176,7 @@ void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice){
                 voice->otCurrent = (voice->otTarget * value) / 1000000 + Midi_currCoil->minOnTime;
                 //UART_print("OT is now %d", Midi_voice[0].otCurrent);
             }
+            SigGen_limit();
             break;
         case freqCurrent:
             voice->freqCurrent = value;
@@ -194,6 +195,7 @@ void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice){
         case noise:
             voice->noiseFactor = value;
             voice->noiseCurrent = (voice->noiseTarget * value) / 1000000;
+            SigGen_limit();
             break;
         case circ1:
             voice->circ1 = value;
@@ -206,7 +208,6 @@ void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice){
             //UART_print("circ=%d (%d)\r\n", voice->circ1, value);
             break;
     }
-    SigGen_limit();
 }
 
 int32_t VMS_getParam(VMS_BLOCK * block, SynthVoice * voice, uint8_t param){

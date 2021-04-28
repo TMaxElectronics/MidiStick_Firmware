@@ -27,7 +27,7 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
 
-#define FORCE_SETTINGS_OVERRIDE 1
+#define FORCE_SETTINGS_OVERRIDE 0
 
 MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
 CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};                              //default coil must not output anything, so the max on time is set to zero
@@ -46,7 +46,7 @@ CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};           
  */
 
 //initialize the default configuration
-const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = LED_DUTY_LIMITER, .cfg.ledMode2 = LED_POWER, .cfg.ledMode3 = LED_DATA, .cfg.auxMode = 0, .cfg.fwVersion = "V1.2"
+const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = LED_DUTY_LIMITER, .cfg.ledMode2 = LED_POWER, .cfg.ledMode3 = LED_DATA, .cfg.auxMode = 0, .cfg.fwVersion = "V1.3"
     , .cfg.fwStatus = 0x11, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.expCfg.selectedCC), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x6162, 
     .expCfg.stereoPosition = 64, .expCfg.stereoWidth = 16, .expCfg.stereoSlope = 255, .expCfg.flags = CONFIG_KEEP_CC, .expCfg.selectedCC = 0xff};
 

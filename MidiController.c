@@ -128,10 +128,14 @@ void Midi_SOFHandler(){
     
     unsigned anyNoteOn = 0;
     
-    uint8_t currVoice = 0;
-    for(;currVoice < MIDI_VOICECOUNT; currVoice++){
-        anyNoteOn |= Midi_voice[currVoice].otFactor > 0;
-        Midi_voice[currVoice].noteAge ++;
+    if(SigGen_genMode == SIGGEN_music4V | SigGen_genMode == SIGGEN_musicSID){
+        uint8_t currVoice = 0;
+        for(;currVoice < MIDI_VOICECOUNT; currVoice++){
+            anyNoteOn |= Midi_voice[currVoice].outputOT > 0;
+            Midi_voice[currVoice].noteAge ++;
+        }
+    }else if(SigGen_genMode == SIGGEN_TR){
+        anyNoteOn = T2CONbits.ON;
     }
     
     
@@ -300,6 +304,7 @@ void Midi_run(){
     if(!USBHandleBusy(Midi_configRxHandle)){
         
         if(!progMode){
+            //UART_print("handling 0x%02x\r\n", ConfigReceivedDataBuffer[0]);
             //New data is available at the configuration endpoint
             //TODO create structs for the data packets, so we don't have to do this ugly stuff
             //yeah this is still a TODO...
@@ -563,12 +568,7 @@ void Midi_setEnabled(unsigned ena){
         }
 
         //stop the timers
-        T2CONCLR = _T2CON_ON_MASK;
-        T3CONCLR = _T3CON_ON_MASK;
-        T4CONCLR = _T4CON_ON_MASK;
-        T5CONCLR = _T5CON_ON_MASK;
-        
-        LATBCLR = _LATB_LATB15_MASK | _LATB_LATB5_MASK; //turn off the output
+        SigGen_kill();
                     
         Midi_LED(LED_DUTY_LIMITER, LED_OFF);
     }

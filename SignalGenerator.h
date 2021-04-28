@@ -17,15 +17,18 @@
     along with the MidiStick Firmware.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifndef SigGen_Inc
+#define SigGen_Inc
+
 #include <xc.h>
 #include <stdint.h>
 
 #include "MidiController.h"
 
-#define SIGGEN_MAX_OTLIMIT 1000 
-#define SIGGEN_MAX_MAXOT 400 
-#define SIGGEN_MIN_MINOT 5          //we need this to prvent the note off timer from firing while we are still in the note on interrupt
-#define SIGGEN_MIN_HOLDOFF 0 
+#define SIGGEN_DEFAULTVOLUME 0xff
+
+typedef enum {SIGGEN_music4V, SIGGEN_musicSID, SIGGEN_TR} GENMODE;
+GENMODE SigGen_genMode;
 
 void SigGen_init();
 
@@ -43,3 +46,19 @@ void SigGen_setMinOT(uint16_t min);
 void SigGen_setHoldOff(uint16_t ho);
 
 void SigGen_limit();
+
+void SigGen_setTR(uint32_t freq, uint32_t ot, uint32_t burstLength, uint32_t burstFreq);
+
+void SigGen_setMode(GENMODE newMode);
+
+void SigGen_kill();
+
+void SigGen_resetWatchDog();
+
+void SigGen_writeRaw(RAW_WRITE_NOTES_Cmd * raw);
+
+void SigGen_setMasterVol(uint32_t newVol);
+
+void SigGen_resetMasterVol();
+
+#endif

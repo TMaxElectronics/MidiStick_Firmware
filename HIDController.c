@@ -25,6 +25,7 @@
 #include "ADSREngine.h"
 #include "mapper.h"
 #include "UART32.h"
+#include "SignalGenerator.h"
 
 #define VMS_RAMSIZE 4096
 
@@ -50,9 +51,9 @@ void VMS_relinkAll();
 void VMS_relinkRamList();
 
 void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_t dataSize) {
-    UART_print("handling command\r\n");
+    
     if(input[0] == USB_CMD_GET_PROTOCOL_VERSION){
-        output[0] = 3;
+        output[0] = 4;
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     
     }else if(input[0] == USB_CMD_VMS_CLEARBLOCKS){
@@ -295,6 +296,59 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         }
         
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
+        
+         
+    }else if(input[0] == USB_CMD_SET_SYNTH_MODE){  
+        GENMODE newMode = input[1];
+    
+        switch(newMode){
+            case SIGGEN_music4V:
+                Midi_setEnabled(1);
+                break;
+                
+            case SIGGEN_musicSID:
+                Midi_setEnabled(0);
+                break;
+
+            case SIGGEN_TR:
+                Midi_setEnabled(0);
+                break;
+        }
+        SigGen_resetMasterVol();
+        SigGen_setMode(newMode);
+        
+    }else if(input[0] == USB_CMD_SET_TR_PARAM){  
+        uint32_t freq =         (input[7] << 24) | (input[6] << 16) | (input[5] << 8) | input[4];
+        uint32_t ot =           (input[11] << 24) | (input[10] << 16) | (input[9] << 8) | input[8];
+        uint32_t burstLength =  (input[15] << 24) | (input[14] << 16) | (input[13] << 8) | input[12];
+        uint32_t burstDelay =    (input[19] << 24) | (input[18] << 16) | (input[17] << 8) | input[16];
+        
+        if(frequency > 10000 | ot > Midi_currCoil->maxOnTime) return;
+        
+        SigGen_setTR(freq, ot, burstLength, burstDelay);
+        
+    }else if(input[0] == USB_CMD_TR_WD_RESET){  
+        SigGen_resetWatchDog();
+    }else if(input[0] == USB_CMD_DIE){
+        SigGen_kill();
+        VMS_clear();
+        
+        Midi_LED(LED_DUTY_LIMITER, LED_OFF);
+                    
+        //step through all voices and switch them off
+        uint8_t currVoice = 0;
+        for(;currVoice < MIDI_VOICECOUNT; currVoice++){
+            //Midi_voice[currVoice].currNote = 0xff;
+            Midi_voice[currVoice].otTarget = 0;
+            Midi_voice[currVoice].otCurrent = 0;
+            Midi_voice[currVoice].on = 0;
+        }
+    }else if(input[0] == USB_CMD_RAW_WRITE_NOTES){
+        RAW_WRITE_NOTES_Cmd * data = (RAW_WRITE_NOTES_Cmd *) &input[4];
+        SigGen_writeRaw(data);
+        
+    }else if(input[0] == USB_CMD_SET_MASTERVOL){
+        SigGen_setMasterVol(input[1]);
     }
 }
 
@@ -318,25 +372,6 @@ void VMS_writeRamList(){
     }
     
     NVM_memcpy4(VMS_currWriteOffset, VMS_currWriteBuffer, lastVMSBlock * sizeof(VMS_BLOCK));
-    
-    /*uint32_t currPageStart = ((uint32_t) VMS_currWriteOffset / PAGE_SIZE) * PAGE_SIZE;
-    if(currPageStart != VMS_currWriteOffset){
-        
-        UART_sendString("We need to append!", 1);
-        uint32_t offset = ((uint32_t) VMS_currWriteOffset - currPageStart);
-        uint8_t * buff = malloc(VMS_RAMSIZE + PAGE_SIZE);
-        memset(buff + VMS_RAMSIZE, 0xff, PAGE_SIZE);
-        memcpy(buff, currPageStart, offset);
-        memcpy((void *) ((uint32_t) buff + (uint32_t) offset), VMS_currWriteBuffer, VMS_RAMSIZE);
-        
-        NVM_memclr4096((void*) currPageStart, VMS_RAMSIZE + PAGE_SIZE);
-        NVM_memcpy128((void*) currPageStart, buff, VMS_RAMSIZE + PAGE_SIZE);
-        
-        free(buff);
-    }else{
-        NVM_memclr4096((void*) VMS_currWriteOffset, VMS_RAMSIZE);
-    }
-    */
 }
 
 void VMS_relinkRamList(){

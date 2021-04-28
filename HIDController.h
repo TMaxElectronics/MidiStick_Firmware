@@ -24,6 +24,7 @@
 //USB Config commands
 #define USB_CMD_PING                    0x00
 #define USB_CMD_GET_PROTOCOL_VERSION    0x01
+#define USB_CMD_DIE                     0x02
 #define USB_CMD_LIVE_PREV               0x10
 #define USB_CMD_SET_ADSR_PREV           0x11
 
@@ -39,6 +40,11 @@
 #define USB_CMD_COILCONFIG_NOT_CHANGED  0x28
 #define USB_CMD_SET_STERO_CONFIG        0x29
 #define USB_CMD_GET_STERO_CONFIG        0x2a
+#define USB_CMD_SET_SYNTH_MODE          0x2b
+#define USB_CMD_SET_TR_PARAM            0x2c
+#define USB_CMD_TR_WD_RESET             0x2d
+#define USB_CMD_RAW_WRITE_NOTES         0x2e
+#define USB_CMD_SET_MASTERVOL           0x2f
 
 #define USB_CMD_GET_DEVCFG              0x30
 #define USB_CMD_SET_DEVCFG              0x31
