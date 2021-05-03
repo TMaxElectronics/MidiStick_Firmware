@@ -57,6 +57,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     
     }else if(input[0] == USB_CMD_VMS_CLEARBLOCKS){
+        output[0] = USB_CMD_VMS_CLEARBLOCKS;
         Midi_setEnabled(0);
         if(VMS_currWriteBuffer != 0){
             free(VMS_currWriteBuffer);
@@ -66,7 +67,6 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         HID_erasePending = 1;
         HID_currErasePage = NVM_blockMem;
         
-        output[0] = 1;
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_CMD_VMS_ERASECHECK){
@@ -78,6 +78,8 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_CMD_VMS_WRITEBLOCK){
+        output[0] = USB_CMD_VMS_WRITEBLOCK;
+        
         if(Midi_enabled) Midi_setEnabled(0);
         if(VMS_currWriteBuffer == 0){
             VMS_currWriteBuffer = malloc(VMS_RAMSIZE);
@@ -102,7 +104,6 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         
         lastVMSBlock++;
         
-        output[0] = 1;
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_VMS_GETMAXBLOCKCOUNT){
@@ -114,6 +115,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_VMS_RELINK){
+        output[0] = USB_VMS_RELINK;
         //UART_print("got relink command!\r\n");
         if(VMS_currWriteBuffer != 0){
             //UART_print("Relinking and writing ramList\r\n");
@@ -128,7 +130,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
             VMS_relinkAll();
         }
 
-        output[0] = (HID_blocklistState == LISTSTATE_NORMAL);
+        output[1] = (HID_blocklistState == LISTSTATE_NORMAL);
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         Midi_setEnabled(1);
         
@@ -146,6 +148,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         Midi_setEnabled(1);
         
     }else if(input[0] == USB_MAP_STARTWRITE){
+        output[0] = USB_MAP_STARTWRITE;
         Midi_setEnabled(0);
         if(HID_currMapHeader != 0){
             free(HID_currMapHeader);
@@ -162,11 +165,10 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         memcpy(HID_currMapHeader, receivedHeader, sizeof(MAPTABLE_HEADER));
         //UART_print("start map \"%.18s\"table write for program %d with %d items\r\n", HID_currMapHeader->name, HID_currMapHeader->programNumber, HID_currMapHeader->listEntries);
         
-        output[0] = 1;
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_MAP_WRITEENTRY){
-        output[0] = 0;
+        output[0] = USB_MAP_WRITEENTRY;
         if(HID_currMapHeader != 0){
             MAPTABLE_ENTRY * receivedEntry = &input[4];
 
@@ -183,7 +185,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_MAP_ENDENTRY){        
-        output[0] = 0;
+        output[0] = USB_MAP_ENDENTRY;
         if(HID_currMapHeader != 0){
             //TODO move this to MAPPER_finishWrite(MAPTABLE_HEADER * listStart)
             VMS_relinkMaptable(HID_currMapHeader);
@@ -207,7 +209,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
         
     }else if(input[0] == USB_MAP_ENDALL){        
-        output[0] = 0;
+        output[0] = USB_MAP_ENDALL;
         if(HID_currMapBuffer != 0){
             //UART_print("writing maptable to flash\r\n"); 
             NVM_memclr4096(NVM_mapMem, MAPMEM_SIZE);
@@ -317,7 +319,8 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         SigGen_resetMasterVol();
         SigGen_setMode(newMode);
         
-    }else if(input[0] == USB_CMD_SET_TR_PARAM){  
+    }else if(input[0] == USB_CMD_SET_TR_PARAM){ 
+        if(SigGen_genMode != SIGGEN_TR) return;
         uint32_t freq =         (input[7] << 24) | (input[6] << 16) | (input[5] << 8) | input[4];
         uint32_t ot =           (input[11] << 24) | (input[10] << 16) | (input[9] << 8) | input[8];
         uint32_t burstLength =  (input[15] << 24) | (input[14] << 16) | (input[13] << 8) | input[12];
@@ -326,6 +329,7 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         if(frequency > 10000 | ot > Midi_currCoil->maxOnTime) return;
         
         SigGen_setTR(freq, ot, burstLength, burstDelay);
+        Midi_flashCommsLED();
         
     }else if(input[0] == USB_CMD_TR_WD_RESET){  
         SigGen_resetWatchDog();
@@ -344,8 +348,10 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
             Midi_voice[currVoice].on = 0;
         }
     }else if(input[0] == USB_CMD_RAW_WRITE_NOTES){
+        if(SigGen_genMode != SIGGEN_musicSID) return;
         RAW_WRITE_NOTES_Cmd * data = (RAW_WRITE_NOTES_Cmd *) &input[4];
         SigGen_writeRaw(data);
+        Midi_flashCommsLED();
         
     }else if(input[0] == USB_CMD_SET_MASTERVOL){
         SigGen_setMasterVol(input[1]);

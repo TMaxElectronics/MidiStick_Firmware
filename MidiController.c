@@ -161,7 +161,6 @@ void Midi_SOFHandler(){
 void Midi_run(){
     if(!Midi_initialized) return;
     
-    
     /* If the device is not configured yet, or the device is suspended, then
      * we don't need to run the demo since we can't send any data.
      */
@@ -172,8 +171,7 @@ void Midi_run(){
     //a new Midi data packet was received
     if(!USBHandleBusy(Midi_dataHandle)){
         if(!progMode && Midi_enabled){
-            Midi_LED(LED_DATA, LED_BLINK);
-            Midi_currComsLEDTime = 100;
+            Midi_flashCommsLED();
 
             uint8_t channel = ReceivedDataBuffer[1] & 0xf;
             uint8_t cmd = ReceivedDataBuffer[1] & 0xf0;
@@ -541,7 +539,7 @@ void Midi_run(){
                     currPage = (ConfigReceivedDataBuffer[1] << 8) | (ConfigReceivedDataBuffer[2]);
                     
                     memset(ToSendDataBuffer, 0, 64);                            //return the size of the page to be written
-                    ToSendDataBuffer[0] = USB_CMD_FWUPDATE_COMMIT;
+                    ToSendDataBuffer[0] = USB_CMD_FWUPDATE_START_BULK_WRITE;
                     ToSendDataBuffer[1] = PAGE_SIZE >> 8;
                     ToSendDataBuffer[2] = PAGE_SIZE & 0xff;
                     Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64); 
@@ -641,4 +639,9 @@ void Midi_LED(uint8_t type, uint8_t state){
     if(NVM_getConfig()->ledMode3 == type) {                     //green
         if(state == LED_ON) LATBCLR = _LATB_LATB7_MASK; else if(state == LED_OFF) LATBSET = _LATB_LATB7_MASK; else if(state == LED_BLINK) LATBINV = _LATB_LATB7_MASK; //blink coms led
     }
+}
+
+void Midi_flashCommsLED(){
+    Midi_LED(LED_DATA, LED_BLINK);
+    Midi_currComsLEDTime = 100;
 }

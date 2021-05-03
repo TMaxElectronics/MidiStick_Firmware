@@ -97,6 +97,7 @@ void SigGen_setTR(uint32_t freq, uint32_t ot, uint32_t burstLength, uint32_t bur
     if(burstLength == 0 || burstDelay == 0){
         T4CONCLR = _T4CON_ON_MASK;
         T5CONCLR = _T5CON_ON_MASK;
+        IEC0CLR = _IEC0_T5IE_MASK;
         SigGen_trPulses = 0;
     }else{
         uint32_t divider = (187 * burstDelay);
@@ -147,6 +148,8 @@ void SigGen_kill(){
     T5CONCLR = _T5CON_ON_MASK;
     
     LATBCLR = _LATB_LATB15_MASK | _LATB_LATB5_MASK; //turn off the output
+    
+    SigGen_outputOn = 0;
 }
 
 //set the timer period register to the appropriate value for the required frequency. To allow for smooth pitch bend commands the frequency is in 1/10th Hz
@@ -157,8 +160,6 @@ void SigGen_setNoteTPR(uint8_t voice, uint32_t freqTenths){
     
     Midi_voice[voice].periodCurrent = divVal;
     Midi_voice[voice].freqCurrent = freqTenths;
-    
-    SigGen_maxOTScaled = (Midi_currCoil->maxOnTime * 100) / 133;
     
     SigGen_limit();
     //turn off the timer if the frequency is too low, otherwise set the scaler register to the appropriate value
@@ -230,11 +231,13 @@ void SigGen_setMasterVol(uint32_t newVol){
 void SigGen_limit(){
     uint32_t totalDuty = 0;
     uint32_t scale = 1000;
-    //TODO remove that dumb /10 and make the duty cycle *10 larger
     uint8_t c = 0;
+    
     for(; c < MIDI_VOICECOUNT; c++){
         totalDuty += (Midi_voice[c].otCurrent * Midi_voice[c].freqCurrent * SigGen_masterVol) / 2550; //TODO preemtively increase the frequency used for calculation if noise is on
     }
+    
+    SigGen_maxOTScaled = (Midi_currCoil->maxOnTime * 100) / 133;
     
     if(totalDuty > 10000 * Midi_currCoil->maxDuty){
         scale = (10000000 * Midi_currCoil->maxDuty) / totalDuty;
@@ -309,7 +312,7 @@ void __ISR(_TIMER_2_VECTOR) SigGen_tmr2ISR(){
             T2CONCLR = _T2CON_ON_MASK;
         }
         
-        if(SigGen_trOT > SigGen_maxOTScaled) return;    //make double sure that the maximum OT is not exceeded       && SigGen_watchDogCounter < 10
+        if(SigGen_trOT > SigGen_maxOTScaled) return;    //make double sure that the maximum OT is not exceeded       || SigGen_watchDogCounter >= 10
         
         //start the NoteOT timer
         PR1 = SigGen_trOT;
@@ -365,8 +368,6 @@ inline void SigGen_timerHandler(uint8_t voice){
     if(Midi_voice[voice].otCurrent < Midi_currCoil->minOnTime || Midi_voice[voice].otCurrent > Midi_currCoil->maxOnTime) return;
     if(Midi_voice[voice].outputOT == 0 || Midi_voice[voice].outputOT > SigGen_maxOTScaled) return;
     SigGen_outputOn = 1;
-    
-    uint16_t otLimit = Midi_currCoil->ontimeLimit * 4;
     
     if(Midi_voice[voice].noiseRaw > 0){
         int32_t nextPeriod = Midi_voice[voice].periodCurrent + (rand() / (RAND_MAX / Midi_voice[voice].noiseRaw)) - (Midi_voice[voice].noiseRaw >> 1);

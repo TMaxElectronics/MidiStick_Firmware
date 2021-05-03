@@ -128,6 +128,7 @@ void Midi_noteOff(uint8_t voice);
 
 ChannelInfo * Midi_getChannelData(uint8_t channel);
 void Midi_mapDrumChannel(SynthVoice * target, uint8_t voice, uint8_t note, uint8_t velocity);
+void Midi_flashCommsLED();
 
 #endif
 #define MidiHInc
