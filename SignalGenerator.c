@@ -312,7 +312,7 @@ void __ISR(_TIMER_2_VECTOR) SigGen_tmr2ISR(){
             T2CONCLR = _T2CON_ON_MASK;
         }
         
-        if(SigGen_trOT > SigGen_maxOTScaled) return;    //make double sure that the maximum OT is not exceeded       || SigGen_watchDogCounter >= 10
+        if(SigGen_trOT == 0 || SigGen_trOT > SigGen_maxOTScaled) return;    //make double sure that the maximum OT is not exceeded       || SigGen_watchDogCounter >= 10
         
         //start the NoteOT timer
         PR1 = SigGen_trOT;
@@ -393,7 +393,6 @@ inline void SigGen_timerHandler(uint8_t voice){
             }
         }
     }
-    
     
     PR1 = Midi_voice[voice].outputOT;
     TMR1 = 0;
