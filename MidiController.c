@@ -42,7 +42,11 @@ const uint16_t Midi_NoteFreq[128] = {8, 9, 9, 10, 10, 11, 12, 12, 13, 14, 15, 15
 ChannelInfo channelData[16] = {[0 ... 15].bendFactor = 200000, [0 ... 15].bendRange = 2.0};
 
 //voice parameters and variables
-SynthVoice Midi_voice[MIDI_VOICECOUNT] = {[0 ... 3].currNote = 0xff, [0].id = 0, [1].id = 1, [2].id = 2, [3].id = 3};
+SynthVoice Midi_voice[MIDI_VOICECOUNT] = {[0 ... 3].currNote = 0xff, [0].id = 0, [1].id = 1, [2].id = 2, [3].id = 3,
+                                          [0].tmrPR = &PR2, [0].tmrCON = &T2CON, [0].tmrTMR = &TMR2, [0].iecMask = _IEC0_T2IE_MASK,
+                                          [1].tmrPR = &PR3, [1].tmrCON = &T3CON, [1].tmrTMR = &TMR3, [1].iecMask = _IEC0_T3IE_MASK,
+                                          [2].tmrPR = &PR4, [2].tmrCON = &T4CON, [2].tmrTMR = &TMR4, [2].iecMask = _IEC0_T4IE_MASK,
+                                          [3].tmrPR = &PR5, [3].tmrCON = &T5CON, [3].tmrTMR = &TMR5, [3].iecMask = _IEC0_T5IE_MASK};
 
 //Programm and coil configuration
 CoilConfig * Midi_currCoil;

@@ -77,8 +77,10 @@ void MAPPER_map(uint8_t note, uint8_t velocity, uint8_t channel){
         if(currNoteFreq != 0 && targetOT){
             Midi_voice[voice].currNoteOrigin = channel;
 
-            //TODO fix this... (maybe done?)
             Midi_voice[voice].noteAge = 0;
+            
+            Midi_voice[voice].hyperVoiceCount = 0;
+            Midi_voice[voice].hyperVoicePhase = 0;
 
             Midi_voice[voice].currNote = note;
             Midi_voice[voice].on = 1;

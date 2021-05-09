@@ -281,8 +281,10 @@ unsigned NVM_readCoilConfig(CoilConfig * dest, uint8_t index){
 
 unsigned NVM_writeCoilConfig(CoilConfig * src, uint8_t index){
     if((uint8_t) ConfigData.coils[index].name[0] == 0xff){     //has the memory been cleared aleady?
+        if(src->maxDuty > 95 || src->maxOnTime > 10000) return;
         NVM_memcpy4(&ConfigData.coils[index], src, sizeof(CoilConfig)); //if it is, we only need to write the data
     }else{
+        if(src->maxDuty > 95 || src->maxOnTime > 10000) return;
         void* pageStart = (void*) &ConfigData.coils[0];
         void* settingsBuffer = malloc(PAGE_SIZE);
         memcpy(settingsBuffer, pageStart, PAGE_SIZE);

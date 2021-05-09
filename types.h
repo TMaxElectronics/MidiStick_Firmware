@@ -37,7 +37,7 @@ typedef struct _MapHeader_ MAPTABLE_HEADER;
 typedef enum {TONE_NORMAL, TONE_NOISE, TONE_SINGE_SHOT} ToneType;
 typedef enum {MOD_AM_NOISE, MOD_FM_NOISE, MOD_AM_SWEEP, MOD_FM_SWEEP} ModulationType;
 typedef enum {VMS_EXP, VMS_EXP_INV, VMS_LIN, VMS_SIN, VMS_JUMP} VMS_MODTYPE;
-typedef enum {maxOnTime, minOnTime, onTime, otCurrent, otTarget, otFactor, frequency, freqCurrent, freqTarget, freqFactor, noise, pTime, circ1, circ2, circ3, circ4, CC_102, CC_103, CC_104, CC_105, CC_106, CC_107, CC_108, CC_109, CC_110, CC_111, CC_112, CC_113, CC_114, CC_115, CC_116, CC_117, CC_118, CC_119, KNOWNVAL_MAX} KNOWN_VALUE;
+typedef enum {maxOnTime, minOnTime, onTime, otCurrent, otTarget, otFactor, frequency, freqCurrent, freqTarget, freqFactor, noise, pTime, circ1, circ2, circ3, circ4, CC_102, CC_103, CC_104, CC_105, CC_106, CC_107, CC_108, CC_109, CC_110, CC_111, CC_112, CC_113, CC_114, CC_115, CC_116, CC_117, CC_118, CC_119, HyperVoice_Count, HyperVoice_Phase, KNOWNVAL_MAX} KNOWN_VALUE;
 typedef enum {RISING, FALLING, ANY, NONE} DIRECTION;
 typedef enum {INVERTED = 0, NORMAL = 1} NOTEOFF_BEHAVIOR;
 
@@ -89,6 +89,10 @@ struct _SynthVoice_{
     int32_t     noiseFactor;
     
     uint8_t     currNote;
+    uint8_t     hyperVoiceCount;
+    uint8_t     hyperVoicePhase;
+    int32_t     hyperVoicePhaseFrac;
+    uint16_t    hyperVoice_timings[2];
     uint32_t    on;
     uint32_t    noteAge;
     uint8_t     currNoteOrigin;
@@ -101,6 +105,13 @@ struct _SynthVoice_{
     
     uint8_t     id;
     MAPTABLE_DATA * map;
+    
+    uint32_t *  hyperVoice_DCHXCONptr;
+    uint32_t *  hyperVoice_DCHXECONptr;
+    uint32_t *  tmrPR;
+    uint32_t *  tmrCON;
+    uint32_t *  tmrTMR;
+    uint32_t    iecMask;
 };
 
 struct _ChannelInfo_{
@@ -184,6 +195,15 @@ typedef struct{
     uint16_t v4OT;
     uint16_t v4NoiseAmp;
     uint16_t v4Flags;
+    
+    uint8_t v1HPVCount;
+    uint8_t v1HPVPhase;
+    uint8_t v2HPVCount;
+    uint8_t v2HPVPhase;
+    uint8_t v3HPVCount;
+    uint8_t v3HPVPhase;
+    uint8_t v4HPVCount;
+    uint8_t v4HPVPhase;
 } RAW_WRITE_NOTES_Cmd;
 
 #endif

@@ -79,9 +79,7 @@ void VMS_run(){
                 currBlock->nextRunTime = SYS_getTime() + currBlock->period * 24;
             }
         }
-    
     }
-    
 }
 
 inline uint32_t SYS_timeSince(uint32_t start){
@@ -143,6 +141,7 @@ int32_t VMS_getKnownValue(KNOWN_VALUE ID, SynthVoice * voice){
             return voice->freqFactor;
         case pTime:
             return voice->portamentoParam;
+            
         case circ1:
             return voice->circ1;
         case circ2:
@@ -151,6 +150,11 @@ int32_t VMS_getKnownValue(KNOWN_VALUE ID, SynthVoice * voice){
             return voice->circ3;
         case circ4:
             return voice->circ4;
+            
+        case HyperVoice_Count:
+            return voice->hyperVoiceCount;
+        case HyperVoice_Phase:
+            return voice->hyperVoicePhaseFrac;
             
         case CC_102 ... CC_119:
             return channelData[voice->currNoteOrigin].parameters[ID - CC_102];
@@ -197,15 +201,30 @@ void VMS_setKnownValue(KNOWN_VALUE ID, int32_t value, SynthVoice * voice){
             voice->noiseCurrent = (voice->noiseTarget * value) / 1000000;
             SigGen_limit();
             break;
+            
         case circ1:
             voice->circ1 = value;
+            break;
         case circ2:
             voice->circ2 = value;
+            break;
         case circ3:
             voice->circ3 = value;
+            break;
         case circ4:
             voice->circ4 = value;
-            //UART_print("circ=%d (%d)\r\n", voice->circ1, value);
+            break;
+
+        case HyperVoice_Count:
+            if(value == 1000000) voice->hyperVoiceCount = 1;
+            if(value == 2000000) voice->hyperVoiceCount = 2;
+            //UART_print("HPV count now %d\r\n", voice->hyperVoiceCount);
+            SigGen_setNoteTPR(voice->id, voice->freqCurrent);
+            break;
+        case HyperVoice_Phase:
+            voice->hyperVoicePhaseFrac = value;
+            voice->hyperVoicePhase = value / 977;  //map to 0 - 0xff
+            SigGen_setNoteTPR(voice->id, voice->freqCurrent);
             break;
     }
 }
@@ -230,8 +249,20 @@ int32_t VMS_getCurrentFactor(KNOWN_VALUE ID, SynthVoice * voice){
             return voice->freqFactor;
         case noise:
             return voice->noiseFactor;
+            
         case circ1:
             return voice->circ1;
+        case circ2:
+            return voice->circ2;
+        case circ3:
+            return voice->circ3;
+        case circ4:
+            return voice->circ4;
+            
+        case HyperVoice_Count:
+            return (HyperVoice_Count == 2) ? 2000000 : 1000000;
+        case HyperVoice_Phase:
+            return voice->hyperVoicePhaseFrac;
     }
     return 0;
 }
@@ -268,9 +299,6 @@ void VMS_removeBlockFromList(VMS_listDataObject * target){
             break;
     }
     
-    //UART_print("removed block 0x%08x at 0x%08x for voice %d\r\n", target->block, data, data->targetVoice->id);
-    //if(data->data > 0xa0000000 && data->data < 0xa0010000) free(data->data);
-    
     free(data);
     DLL_remove(currObject);
 }
@@ -287,40 +315,6 @@ void VMS_addBlockToList(VMS_BLOCK * block, SynthVoice * voice){
     data->nextRunTime = SYS_getTime();
     
     int32_t param1 = VMS_getParam(block, voice, 1);
-    /*
-    switch(block->type){
-        case VMS_EXP:
-            if(param1 > 1000){
-                data->thresholdDirection = RISING;
-            }else{
-                data->thresholdDirection = FALLING;
-            }
-            //UART_print("exp: param = %d => %s\r\n", param1, (data->thresholdDirection == RISING) ? "rising" : "falling");
-            break;
-        case VMS_EXP_INV:
-            if(param1 > 1000){
-                data->thresholdDirection = FALLING;
-            }else{
-                data->thresholdDirection = RISING;
-            }
-            break;
-        case VMS_LIN:
-            if(param1 > 0){
-                data->thresholdDirection = RISING;
-            }else{
-                data->thresholdDirection = FALLING;
-            }
-            //UART_print("LIN: param = %d => %s\r\n", param1, (data->thresholdDirection == RISING) ? "rising" : "falling");
-            break;
-        case VMS_SIN:
-            data->thresholdDirection = NONE;
-            break;
-        default:
-            data->thresholdDirection = (block->targetFactor < VMS_getCurrentFactor(block->target, voice)) ? FALLING : RISING;
-            //UART_print("tfrom %d to %d (%s)\r\n", VMS_getCurrentFactor(block->target, voice), block->targetFactor, (data->thresholdDirection == FALLING) ? "falling" : "rising");
-            break;
-    }
-    */
     
     switch(block->type){
         case VMS_SIN:
