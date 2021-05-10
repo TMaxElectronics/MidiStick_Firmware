@@ -54,7 +54,7 @@ void SigGen_init(){
     
     Midi_voice[0].hyperVoice_DCHXCONptr = &DCH0CON; 
     Midi_voice[0].hyperVoice_DCHXECONptr = &DCH0ECON; 
-    DCH0CON  = 0b11010011;
+    DCH0CON  = 0b10010011;
     DCH0ECON = 0b00010000; DCH0ECONbits.CHSIRQ = _TIMER_2_IRQ;
     DCH0SSIZ = 4; DCH0SSA = KVA_TO_PA(Midi_voice[0].hyperVoice_timings);
     DCH0DSIZ = 2; DCH0DSA = KVA_TO_PA(&PR2);
@@ -68,7 +68,7 @@ void SigGen_init(){
     
     Midi_voice[1].hyperVoice_DCHXCONptr = &DCH1CON; 
     Midi_voice[1].hyperVoice_DCHXECONptr = &DCH1ECON; 
-    DCH1CON  = 0b11010010;
+    DCH1CON  = 0b10010010;
     DCH1ECON = 0b00010000; DCH1ECONbits.CHSIRQ = _TIMER_3_IRQ;
     DCH1SSIZ = 4; DCH1SSA = KVA_TO_PA((Midi_voice[1].hyperVoice_timings));
     DCH1DSIZ = 2; DCH1DSA = KVA_TO_PA(&PR3);
@@ -82,7 +82,7 @@ void SigGen_init(){
     
     Midi_voice[2].hyperVoice_DCHXCONptr = &DCH2CON; 
     Midi_voice[2].hyperVoice_DCHXECONptr = &DCH2ECON; 
-    DCH2CON  = 0b11010001;
+    DCH2CON  = 0b10010001;
     DCH2ECON = 0b00010000; DCH2ECONbits.CHSIRQ = _TIMER_4_IRQ;
     DCH2SSIZ = 4; DCH2SSA = KVA_TO_PA((Midi_voice[2].hyperVoice_timings));
     DCH2DSIZ = 2; DCH2DSA = KVA_TO_PA(&PR4);
@@ -96,7 +96,7 @@ void SigGen_init(){
     
     Midi_voice[3].hyperVoice_DCHXCONptr = &DCH3CON;
     Midi_voice[3].hyperVoice_DCHXECONptr = &DCH3ECON; 
-    DCH3CON  = 0b11010000;
+    DCH3CON  = 0b10010000;
     DCH3ECON = 0b00010000; DCH3ECONbits.CHSIRQ = _TIMER_5_IRQ;
     DCH3SSIZ = 4; DCH3SSA = KVA_TO_PA((Midi_voice[3].hyperVoice_timings));
     DCH3DSIZ = 2; DCH3DSA = KVA_TO_PA(&PR5);
@@ -206,12 +206,12 @@ void SigGen_setNoteTPR(uint8_t voice, uint32_t freqTenths){
     
     SigGen_limit();
     
-    if(freqTenths != 0 && freqTenths < 150000){
-        if(Midi_voice[voice].hyperVoiceCount == 2 && Midi_voice[voice].noiseCurrent == 0){  // && Midi_voice[voice].hyperVoicePhase > 0
+    if(freqTenths != 0){
+        if(Midi_voice[voice].hyperVoiceCount == 2 && Midi_voice[voice].noiseCurrent == 0 && Midi_voice[voice].outputOT > 10){  // && Midi_voice[voice].hyperVoicePhase > 0
 
             //calculate the timings for the two pulses
             uint32_t t0 = (divVal * Midi_voice[voice].hyperVoicePhase) >> 10;
-            uint32_t t1 = divVal - Midi_voice[voice].hyperVoice_timings[0];
+            uint32_t t1 = divVal - t0;
 
             //UART_print("calcing HyperV on %d: dma = 0x%08x TMR = %d PR = %d CON = 0x%08x\r\n", voice, *Midi_voice[voice].hyperVoice_DCHXCONptr, *Midi_voice[voice].tmrTMR, *Midi_voice[voice].tmrPR, *Midi_voice[voice].tmrCON);
             
@@ -219,12 +219,13 @@ void SigGen_setNoteTPR(uint8_t voice, uint32_t freqTenths){
             if(t1 < ot){
                 Midi_voice[voice].hyperVoice_timings[0] = divVal - ot;
                 Midi_voice[voice].hyperVoice_timings[1] = ot;
-                //UART_print("WRONG2 ot = %d\r\n", ot);
+                //UART_print("WRONG2 ot = %d\t", ot);
             }else if(t0 < ot){ 
                 Midi_voice[voice].hyperVoice_timings[0] = ot;
                 Midi_voice[voice].hyperVoice_timings[1] = divVal - ot;
-                //UART_print("WRONG3 ot = %d\r\n", ot); 
+                //UART_print("WRONG3 ot = %d\t", ot); 
             }else{
+                //UART_print("gud\t", ot); 
                 Midi_voice[voice].hyperVoice_timings[0] = t0;
                 Midi_voice[voice].hyperVoice_timings[1] = t1;
             }
@@ -239,27 +240,30 @@ void SigGen_setNoteTPR(uint8_t voice, uint32_t freqTenths){
                 //UART_print("WRONG\r\n");
                 *(Midi_voice[voice].hyperVoice_DCHXCONptr) |= _DCH0CON_CHEN_MASK;
             }else{
+                *(Midi_voice[voice].tmrPR) = divVal;
+                if(*(Midi_voice[voice].tmrTMR) >= divVal) *(Midi_voice[voice].tmrTMR) = divVal - 5;
                 *(Midi_voice[voice].hyperVoice_DCHXCONptr) &=  ~_DCH0CON_CHEN_MASK;
             }
-            
-            //UART_print("calcing nonHyperV on %d: dma = 0x%08x TMR = %d PR = %d CON = 0x%08x period total = %d t[0]=%d t[1]=%d\r\n", voice, *Midi_voice[voice].hyperVoice_DCHXCONptr, *Midi_voice[voice].tmrTMR, *Midi_voice[voice].tmrPR, *Midi_voice[voice].tmrCON, Midi_voice[voice].periodCurrent, Midi_voice[voice].hyperVoice_timings[0], Midi_voice[voice].hyperVoice_timings[1]);
+            //UART_print("calcing nonHyperV on %d: dma = 0x%08x TMR = %d PR = %d CON = 0x%08x period total = %d t[0]=%d t[1]=%d ot = %d on = 0x%04x\r\n", voice, *Midi_voice[voice].hyperVoice_DCHXCONptr, *Midi_voice[voice].tmrTMR, *Midi_voice[voice].tmrPR, *Midi_voice[voice].tmrCON, Midi_voice[voice].periodCurrent, Midi_voice[voice].hyperVoice_timings[0], Midi_voice[voice].hyperVoice_timings[1], Midi_voice[voice].outputOT, LATB & 0xffff);
 
         }
 
         if((*(Midi_voice[voice].tmrCON) & _T2CON_ON_MASK) == 0){
             //UART_print("jumpstarting DMA\r\n");
             
-            if(Midi_voice[voice].noiseCurrent == 0){
+            *(Midi_voice[voice].tmrPR) = divVal;
+            *(Midi_voice[voice].tmrTMR) = 0;
+            
+            /*if(Midi_voice[voice].noiseCurrent == 0){
                 *(Midi_voice[voice].hyperVoice_DCHXECONptr) |= _DCH0ECON_CFORCE_MASK;
             }else{
-                *(Midi_voice[voice].tmrPR) = divVal;
-            }
+            }*/
             
-            *(Midi_voice[voice].tmrTMR) = 0;
             *(Midi_voice[voice].tmrCON) |= _T2CON_ON_MASK;
             IEC0SET = Midi_voice[voice].iecMask;
         }
     }else{
+        //UART_print("WRONG %d\r\n", freqTenths);
         *(Midi_voice[voice].tmrCON) &= ~_T2CON_ON_MASK;
         IEC0CLR = Midi_voice[voice].iecMask;
     }
@@ -432,8 +436,8 @@ void __ISR(_TIMER_1_VECTOR) SigGen_noteOffISR(){
 
 inline void SigGen_timerHandler(uint8_t voice){
     if(SigGen_outputOn) return;
-    if(Midi_voice[voice].otCurrent < Midi_currCoil->minOnTime || Midi_voice[voice].otCurrent > Midi_currCoil->maxOnTime) return;
-    if(Midi_voice[voice].outputOT == 0 || Midi_voice[voice].outputOT > SigGen_maxOTScaled) return;
+    if(Midi_voice[voice].otCurrent < Midi_currCoil->minOnTime || Midi_voice[voice].otCurrent > Midi_currCoil->maxOnTime) { return;} //UART_print("\r\not1 error!\r\n"); 
+    if(Midi_voice[voice].outputOT == 0 || Midi_voice[voice].outputOT > SigGen_maxOTScaled) { return;} //UART_print("\r\not2 error!\r\n"); 
     SigGen_outputOn = 1;
     
     if(Midi_voice[voice].noiseRaw > 0){
