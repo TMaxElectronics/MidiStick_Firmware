@@ -210,7 +210,7 @@ void SigGen_setNoteTPR(uint8_t voice, uint32_t freqTenths){
         if(Midi_voice[voice].hyperVoiceCount == 2 && Midi_voice[voice].noiseCurrent == 0){  // && Midi_voice[voice].hyperVoicePhase > 0
 
             //calculate the timings for the two pulses
-            uint32_t t0 = (divVal * Midi_voice[voice].hyperVoicePhase) / 1024;
+            uint32_t t0 = (divVal * Midi_voice[voice].hyperVoicePhase) >> 10;
             uint32_t t1 = divVal - Midi_voice[voice].hyperVoice_timings[0];
 
             //UART_print("calcing HyperV on %d: dma = 0x%08x TMR = %d PR = %d CON = 0x%08x\r\n", voice, *Midi_voice[voice].hyperVoice_DCHXCONptr, *Midi_voice[voice].tmrTMR, *Midi_voice[voice].tmrPR, *Midi_voice[voice].tmrCON);
@@ -229,7 +229,7 @@ void SigGen_setNoteTPR(uint8_t voice, uint32_t freqTenths){
                 Midi_voice[voice].hyperVoice_timings[1] = t1;
             }
             
-            //UART_print("calcing HyperV on %d: dma = 0x%08x dma0ptr = 0x%08x TMR = %d PR = %d CON = 0x%08x phase = %d period total = %d t[0]=%d t[1]=%d\r\n", voice, *Midi_voice[voice].hyperVoice_DCHXCONptr, DCH0SPTR, *Midi_voice[voice].tmrTMR, *Midi_voice[voice].tmrPR, *Midi_voice[voice].tmrCON, Midi_voice[voice].hyperVoicePhase, Midi_voice[voice].periodCurrent, Midi_voice[voice].hyperVoice_timings[0], Midi_voice[voice].hyperVoice_timings[1]);
+            //UART_print("calcing HyperV on %d: dma = 0x%08x TMR = %d PR = %d CON = 0x%08x phase = %d period total = %d t[0]=%d t[1]=%d\r\n", voice, *Midi_voice[voice].hyperVoice_DCHXCONptr, *Midi_voice[voice].tmrTMR, *Midi_voice[voice].tmrPR, *Midi_voice[voice].tmrCON, Midi_voice[voice].hyperVoicePhase, Midi_voice[voice].periodCurrent, Midi_voice[voice].hyperVoice_timings[0], Midi_voice[voice].hyperVoice_timings[1]);
 
             *(Midi_voice[voice].hyperVoice_DCHXCONptr) |= _DCH0CON_CHEN_MASK;
         }else{
@@ -241,6 +241,9 @@ void SigGen_setNoteTPR(uint8_t voice, uint32_t freqTenths){
             }else{
                 *(Midi_voice[voice].hyperVoice_DCHXCONptr) &=  ~_DCH0CON_CHEN_MASK;
             }
+            
+            //UART_print("calcing nonHyperV on %d: dma = 0x%08x TMR = %d PR = %d CON = 0x%08x period total = %d t[0]=%d t[1]=%d\r\n", voice, *Midi_voice[voice].hyperVoice_DCHXCONptr, *Midi_voice[voice].tmrTMR, *Midi_voice[voice].tmrPR, *Midi_voice[voice].tmrCON, Midi_voice[voice].periodCurrent, Midi_voice[voice].hyperVoice_timings[0], Midi_voice[voice].hyperVoice_timings[1]);
+
         }
 
         if((*(Midi_voice[voice].tmrCON) & _T2CON_ON_MASK) == 0){
@@ -290,6 +293,7 @@ void SigGen_limit(){
     totalDuty = (totalDuty * SigGen_masterVol) / 0xff;
     
     SigGen_holdOff = (Midi_currCoil->holdoffTime * 100) / 133;
+    if(SigGen_holdOff < 2) SigGen_holdOff = 2;
     SigGen_maxOTScaled = (Midi_currCoil->maxOnTime * 100) / 133;
     
     if(totalDuty > 10000 * Midi_currCoil->maxDuty){
@@ -313,13 +317,8 @@ void SigGen_limit(){
     
     for(c = 0; c < MIDI_VOICECOUNT; c++){
         uint32_t ot;
-        if(Midi_voice[c].hyperVoiceCount == 2 && Midi_voice[c].noiseCurrent == 0){  
-            ot = (Midi_voice[c].otCurrent * scale) / 1330;
-            ot = (ot * SigGen_masterVol) / 255;
-        }else{
-            ot = (Midi_voice[c].otCurrent * scale) / 1330;
-            ot = (ot * SigGen_masterVol) / 255;
-        }
+        ot = (Midi_voice[c].otCurrent * scale) / 1330;
+        ot = (ot * SigGen_masterVol) / 255;
         
         Midi_voice[c].outputOT = ot;
     }
@@ -423,10 +422,10 @@ void __ISR(_TIMER_1_VECTOR) SigGen_noteOffISR(){
     if(SigGen_outputOn){
         SigGen_outputOn = 0;
         PR1 = SigGen_holdOff;
+        //IFS0CLR = _IFS0_T2IF_MASK | _IFS0_T3IF_MASK | _IFS0_T4IF_MASK | _IFS0_T5IF_MASK;
         TMR1 = 0;
     }else{
         T1CONCLR = _T1CON_ON_MASK;
-        IFS0CLR = _IFS0_T2IF_MASK | _IFS0_T3IF_MASK | _IFS0_T4IF_MASK | _IFS0_T5IF_MASK;
         IEC0SET = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
     }
 }
