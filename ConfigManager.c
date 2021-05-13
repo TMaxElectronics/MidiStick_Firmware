@@ -27,7 +27,7 @@
 #define _SUPPRESS_PLIB_WARNING
 #include <peripheral/nvm.h>
 
-#define FORCE_SETTINGS_OVERRIDE 0
+#define FORCE_SETTINGS_OVERRIDE_MIN_FWVER "\x01V1.2"
 
 MidiProgramm defaultProgramm = {"default programm        ", 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2};    //default programm has no effects enabled and uses the standard bend range of +-2
 CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};                              //default coil must not output anything, so the max on time is set to zero
@@ -50,7 +50,7 @@ const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog
     , .cfg.fwStatus = 0x11, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.expCfg.selectedCC), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x6162, 
     .expCfg.stereoPosition = 64, .expCfg.stereoWidth = 16, .expCfg.stereoSlope = 255, .expCfg.flags = CONFIG_KEEP_CC, .expCfg.selectedCC = 0xff};
 
-const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {FORCE_SETTINGS_OVERRIDE};                               //dummy data
+const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {FORCE_SETTINGS_OVERRIDE_MIN_FWVER};                               //dummy data
 const volatile uint8_t NVM_mapMem[MAPMEM_SIZE] __attribute__((space(fwUpgradeReserved), address(0x9d020000 + BYTE_PAGE_SIZE))) = {0};                       //dummy data
 const volatile uint8_t NVM_blockMem[BLOCKMEM_SIZE] __attribute__((space(fwUpgradeReserved), address(0x9d020000 + BYTE_PAGE_SIZE + MAPMEM_SIZE))) = {0};     //dummy data
 
