@@ -34,7 +34,7 @@ static uint32_t SigGen_trPulseCount = 0;
 static uint32_t SigGen_holdOff = 0;
 static uint32_t SigGen_watchDogCounter = 0;
 
-static SigGen_masterVol = SIGGEN_DEFAULTVOLUME;
+uint32_t SigGen_masterVol = SIGGEN_DEFAULTVOLUME;
 
 void SigGen_init(){
     //enable DMA for hyperVoice (tm)
@@ -295,6 +295,7 @@ void SigGen_limit(){
     }
     
     totalDuty = (totalDuty * SigGen_masterVol) / 0xff;
+    totalDuty = (totalDuty * COMP_getGain()) >> 10;
     
     SigGen_holdOff = (Midi_currCoil->holdoffTime * 100) / 133;
     if(SigGen_holdOff < 2) SigGen_holdOff = 2;
@@ -323,6 +324,7 @@ void SigGen_limit(){
         uint32_t ot;
         ot = (Midi_voice[c].otCurrent * scale) / 1330;
         ot = (ot * SigGen_masterVol) / 255;
+        ot = (ot * COMP_getGain()) >> 10;
         
         Midi_voice[c].outputOT = ot;
     }

@@ -46,9 +46,9 @@ CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};           
  */
 
 //initialize the default configuration
-const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = LED_DUTY_LIMITER, .cfg.ledMode2 = LED_POWER, .cfg.ledMode3 = LED_DATA, .cfg.auxMode = 0, .cfg.fwVersion = "V2.0"
-    , .cfg.fwStatus = 0x11, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.expCfg.selectedCC), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x6162, 
-    .expCfg.stereoPosition = 64, .expCfg.stereoWidth = 16, .expCfg.stereoSlope = 255, .expCfg.flags = CONFIG_KEEP_CC, .expCfg.selectedCC = 0xff};
+const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = LED_DUTY_LIMITER, .cfg.ledMode2 = LED_POWER, .cfg.ledMode3 = LED_DATA, .cfg.auxMode = 0, .cfg.fwVersion = "V2.1"
+    , .cfg.fwStatus = 0x11, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.expCfg.compressorRelease), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x6162, 
+    .expCfg.stereoPosition = 64, .expCfg.stereoWidth = 16, .expCfg.stereoSlope = 255, .expCfg.flags = CONFIG_KEEP_CC, .expCfg.selectedCC = 0xff, .expCfg.compressorAttac = 1, .expCfg.compressorSustain = 155, .expCfg.compressorRelease = 1};
 
 const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {FORCE_SETTINGS_OVERRIDE_MIN_FWVER};                               //dummy data
 const volatile uint8_t NVM_mapMem[MAPMEM_SIZE] __attribute__((space(fwUpgradeReserved), address(0x9d020000 + BYTE_PAGE_SIZE))) = {0};                       //dummy data

@@ -28,6 +28,8 @@
 #define MAP_ENA_PORTAMENTO  0x08
 #define MAP_FREQ_MODE       0x01
 
+#define MAPPER_ALL_PROGRAMMS 0xff
+
 #define FREQ_MODE_OFFSET    1
 #define FREQ_MODE_FIXED     0
 

@@ -30,11 +30,13 @@
 const struct{
     MAPTABLE_HEADER h0;
     MAPTABLE_ENTRY h0e0;
-} DEFMAP = {.h0 = {.programNumber = 0, .listEntries = 1} , .h0e0 = {.startNote = 0, .endNote = 127, .data.VMS_Startblock = &ATTAC, .data.flags = MAP_ENA_DAMPER | MAP_ENA_STEREO | MAP_ENA_VOLUME | MAP_ENA_PITCHBEND | MAP_FREQ_MODE, .data.noteFreq = 0, .data.targetOT = 255}};
+} DEFMAP = {.h0 = {.programNumber = MAPPER_ALL_PROGRAMMS, .listEntries = 1} , .h0e0 = {.startNote = 0, .endNote = 127, .data.VMS_Startblock = &ATTAC, .data.flags = MAP_ENA_DAMPER | MAP_ENA_STEREO | MAP_ENA_VOLUME | MAP_ENA_PITCHBEND | MAP_FREQ_MODE, .data.noteFreq = 0, .data.targetOT = 255}};
 
 void MAPPER_map(uint8_t note, uint8_t velocity, uint8_t channel){
     MAPTABLE_DATA * maps[MIDI_VOICECOUNT];
+    //memset(maps, 0, sizeof(MAPTABLE_DATA *) * MIDI_VOICECOUNT);
     uint8_t requestedChannels = MAPPER_getMaps(note, channelData[channel].currentMap, maps);
+    
     if(requestedChannels == 0){
         maps[0] = &DEFMAP.h0e0.data;
         requestedChannels = 1;

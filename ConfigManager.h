@@ -81,6 +81,10 @@ typedef struct{
     
     uint8_t flags;
     uint8_t selectedCC;
+    
+    uint8_t compressorAttac;
+    uint8_t compressorSustain;
+    uint8_t compressorRelease;
 } EXPCFGData;
 
 typedef struct {

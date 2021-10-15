@@ -57,17 +57,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c main.c MidiController.c ConfigManager.c UART32.c ADSREngine.c SignalGenerator.c VMSRoutines.c mapper.c HIDController.c DLL.c
+SOURCEFILES_QUOTED_IF_SPACED=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c main.c MidiController.c ConfigManager.c UART32.c ADSREngine.c SignalGenerator.c VMSRoutines.c mapper.c HIDController.c DLL.c DutyCompressor.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/UART32.o ${OBJECTDIR}/ADSREngine.o ${OBJECTDIR}/SignalGenerator.o ${OBJECTDIR}/VMSRoutines.o ${OBJECTDIR}/mapper.o ${OBJECTDIR}/HIDController.o ${OBJECTDIR}/DLL.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/usb_descriptors.o.d ${OBJECTDIR}/usb_device.o.d ${OBJECTDIR}/usb_events.o.d ${OBJECTDIR}/usb_device_hid.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/MidiController.o.d ${OBJECTDIR}/ConfigManager.o.d ${OBJECTDIR}/UART32.o.d ${OBJECTDIR}/ADSREngine.o.d ${OBJECTDIR}/SignalGenerator.o.d ${OBJECTDIR}/VMSRoutines.o.d ${OBJECTDIR}/mapper.o.d ${OBJECTDIR}/HIDController.o.d ${OBJECTDIR}/DLL.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/UART32.o ${OBJECTDIR}/ADSREngine.o ${OBJECTDIR}/SignalGenerator.o ${OBJECTDIR}/VMSRoutines.o ${OBJECTDIR}/mapper.o ${OBJECTDIR}/HIDController.o ${OBJECTDIR}/DLL.o ${OBJECTDIR}/DutyCompressor.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/usb_descriptors.o.d ${OBJECTDIR}/usb_device.o.d ${OBJECTDIR}/usb_events.o.d ${OBJECTDIR}/usb_device_hid.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/MidiController.o.d ${OBJECTDIR}/ConfigManager.o.d ${OBJECTDIR}/UART32.o.d ${OBJECTDIR}/ADSREngine.o.d ${OBJECTDIR}/SignalGenerator.o.d ${OBJECTDIR}/VMSRoutines.o.d ${OBJECTDIR}/mapper.o.d ${OBJECTDIR}/HIDController.o.d ${OBJECTDIR}/DLL.o.d ${OBJECTDIR}/DutyCompressor.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/UART32.o ${OBJECTDIR}/ADSREngine.o ${OBJECTDIR}/SignalGenerator.o ${OBJECTDIR}/VMSRoutines.o ${OBJECTDIR}/mapper.o ${OBJECTDIR}/HIDController.o ${OBJECTDIR}/DLL.o
+OBJECTFILES=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/UART32.o ${OBJECTDIR}/ADSREngine.o ${OBJECTDIR}/SignalGenerator.o ${OBJECTDIR}/VMSRoutines.o ${OBJECTDIR}/mapper.o ${OBJECTDIR}/HIDController.o ${OBJECTDIR}/DLL.o ${OBJECTDIR}/DutyCompressor.o
 
 # Source Files
-SOURCEFILES=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c main.c MidiController.c ConfigManager.c UART32.c ADSREngine.c SignalGenerator.c VMSRoutines.c mapper.c HIDController.c DLL.c
+SOURCEFILES=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c main.c MidiController.c ConfigManager.c UART32.c ADSREngine.c SignalGenerator.c VMSRoutines.c mapper.c HIDController.c DLL.c DutyCompressor.c
 
 
 
@@ -191,6 +191,12 @@ ${OBJECTDIR}/DLL.o: DLL.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/DLL.o 
 	@${FIXDEPS} "${OBJECTDIR}/DLL.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/DLL.o.d" -o ${OBJECTDIR}/DLL.o DLL.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
 	
+${OBJECTDIR}/DutyCompressor.o: DutyCompressor.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/DutyCompressor.o.d 
+	@${RM} ${OBJECTDIR}/DutyCompressor.o 
+	@${FIXDEPS} "${OBJECTDIR}/DutyCompressor.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/DutyCompressor.o.d" -o ${OBJECTDIR}/DutyCompressor.o DutyCompressor.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	
 else
 ${OBJECTDIR}/usb_descriptors.o: usb_descriptors.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
@@ -275,6 +281,12 @@ ${OBJECTDIR}/DLL.o: DLL.c  nbproject/Makefile-${CND_CONF}.mk
 	@${RM} ${OBJECTDIR}/DLL.o.d 
 	@${RM} ${OBJECTDIR}/DLL.o 
 	@${FIXDEPS} "${OBJECTDIR}/DLL.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/DLL.o.d" -o ${OBJECTDIR}/DLL.o DLL.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	
+${OBJECTDIR}/DutyCompressor.o: DutyCompressor.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/DutyCompressor.o.d 
+	@${RM} ${OBJECTDIR}/DutyCompressor.o 
+	@${FIXDEPS} "${OBJECTDIR}/DutyCompressor.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/DutyCompressor.o.d" -o ${OBJECTDIR}/DutyCompressor.o DutyCompressor.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
 	
 endif
 

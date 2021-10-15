@@ -78,6 +78,7 @@ struct _SynthVoice_{
     int32_t     periodCurrent;
     int32_t     divCurrent;
     
+    uint32_t    otCompressed;
     uint32_t    otTarget;
     uint32_t    otCurrent;
     int32_t     otFactor;
@@ -90,7 +91,7 @@ struct _SynthVoice_{
     
     uint8_t     currNote;
     uint8_t     hyperVoiceCount;
-    uint8_t     hyperVoicePhase;
+    uint16_t    hyperVoicePhase;
     int32_t     hyperVoicePhaseFrac;
     uint16_t    hyperVoice_timings[2];
     uint32_t    on;
@@ -112,6 +113,7 @@ struct _SynthVoice_{
     uint32_t *  tmrCON;
     uint32_t *  tmrTMR;
     uint32_t    iecMask;
+    
 };
 
 struct _ChannelInfo_{

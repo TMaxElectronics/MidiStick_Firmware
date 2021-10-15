@@ -159,7 +159,9 @@ void Midi_SOFHandler(){
             LATBINV = _LATB_LATB8_MASK;
             Midi_blinkScaler = 0;
         }
-    }
+    } 
+    
+    COMP_compress();
 }
 
 void Midi_run(){
@@ -262,13 +264,13 @@ void Midi_run(){
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_DATA_FINE){           //RPN data -> check the address we received before, to select which parameter to change
                     if(Midi_currRPN == MIDI_RPN_BENDRANGE){     //get the 100ths semitones for the bendrange
                         channelData[channel].bendLSB = ReceivedDataBuffer[3];
-                        //channelData[channel].currProgramm->bendRange = (float) channelData[channel].bendMSB + (float) channelData[channel].bendLSB / 100.0;
+                        channelData[channel].bendRange = (float) channelData[channel].bendMSB + (float) channelData[channel].bendLSB / 100.0;
                     }
                     
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_DATA_COARSE){         //RPN data -> check the address we received before, to select which parameter to change
                     if(Midi_currRPN == MIDI_RPN_BENDRANGE){     //get the full semitones for the bendrange
                         channelData[channel].bendMSB = ReceivedDataBuffer[3];
-                        //channelData[channel].currProgramm->bendRange = (float) channelData[channel].bendMSB + (float) channelData[channel].bendLSB / 100.0;
+                        channelData[channel].bendRange = (float) channelData[channel].bendMSB + (float) channelData[channel].bendLSB / 100.0;
                     }
                     
                 }else if(ReceivedDataBuffer[2] == MIDI_CC_NRPN_LSB || ReceivedDataBuffer[2] == MIDI_CC_NRPN_MSB){   //we don't currently support any NRPNs, but we need to make sure, that we don't confuse the data sent for them as being a RPN, so reset the current RPN address

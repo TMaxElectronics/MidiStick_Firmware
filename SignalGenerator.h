@@ -30,6 +30,8 @@
 typedef enum {SIGGEN_music4V, SIGGEN_musicSID, SIGGEN_TR} GENMODE;
 GENMODE SigGen_genMode;
 
+extern uint32_t SigGen_masterVol;
+
 void SigGen_init();
 
 //set the timer period register to the appropriate value for the required frequency. To allow for smooth pitch bend commands the frequency is in 1/10th Hz
