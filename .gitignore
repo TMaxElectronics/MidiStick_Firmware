@@ -4,3 +4,4 @@
 *.o
 *.d
 dist/default/production/memoryfile.xml
+.generated_files/flags/default/*

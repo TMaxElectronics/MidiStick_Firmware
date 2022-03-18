@@ -37,6 +37,7 @@ void COMP_compress(){
         //NVM_getConfig()
         uint32_t totalDuty = 0;
 
+        //calculate current dutycycle
         uint8_t c = 0;
         for(; c < MIDI_VOICECOUNT; c++){
             uint32_t ourDuty = (Midi_voice[c].otCurrent * Midi_voice[c].freqCurrent) / 10; //TODO preemtively increase the frequency used for calculation if noise is on
@@ -47,8 +48,9 @@ void COMP_compress(){
         totalDuty = (totalDuty * SigGen_masterVol) >> 8;
         totalDuty = (totalDuty * currGain) >> 10;
 
-
-        // > 50% of maxDuty
+        // are we at > 50% of maxDuty 
+        
+        //TODO add adjustable parameters
         if(totalDuty > 5000 * Midi_currCoil->maxDuty){
             compressorState = COMPSTATE_ATTAC;
             if((currGain -= 10) < 0) currGain = 0;

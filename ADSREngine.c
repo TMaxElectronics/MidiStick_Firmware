@@ -312,7 +312,7 @@ void VMS_addBlockToList(VMS_BLOCK * block, SynthVoice * voice){
     data->block = block;
     data->targetVoice = voice;
     data->period = block->period;
-    data->nextRunTime = SYS_getTime();
+    data->nextRunTime = SYS_getTime() + data->block->period * 24;
     
     int32_t param1 = VMS_getParam(block, voice, 1);
     

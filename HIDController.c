@@ -53,7 +53,7 @@ void VMS_relinkRamList();
 void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_t dataSize) {
     
     if(input[0] == USB_CMD_GET_PROTOCOL_VERSION){
-        output[0] = 4;
+        output[0] = 5;
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     
     }else if(input[0] == USB_CMD_VMS_CLEARBLOCKS){
