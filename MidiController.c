@@ -180,6 +180,8 @@ void Midi_run(){
         if(!progMode && Midi_enabled){
             uint8_t currChunk = 0;
             uint8_t send = 0;
+            
+            //as opposed to what the standard says, there can be more than one message per packet. To detect this we just check if there is another valid command in the current message, if not we break otherwise process it and continue looking
             for(; currChunk < 8; currChunk++){
                 
                 uint8_t startByte = currChunk * 4;

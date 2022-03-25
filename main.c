@@ -142,6 +142,7 @@ void main(void) {
     
     uint32_t lastRun = 0;
     while(1){   //run the required tasks
+        APP_DeviceAudioMicrophoneTasks();
         USBDeviceTasks();
         Midi_run();
         VMS_run();
@@ -166,7 +167,6 @@ void initIO(){
     TRISA = 0;
     LATA = 0;
     TRISBCLR = _LATB_LATB5_MASK | _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK | _LATB_LATB15_MASK;
-    
     //The LEDs are common anode and connected to the +5V rail, so enable the open drain inputs
     ODCBSET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
     

@@ -32,8 +32,8 @@ please contact mla_licensing@microchip.com
 								// that use EP0 IN or OUT for sending large amounts of
 								// application related data.
 									
-#define USB_MAX_NUM_INT     	2   // For tracking Alternate Setting
-#define USB_MAX_EP_NUMBER	    2
+#define USB_MAX_NUM_INT     	5   // For tracking Alternate Setting
+#define USB_MAX_EP_NUMBER	    5
 
 //Device descriptor - if these two definitions are not defined then
 //  a ROM USB_DEVICE_DESCRIPTOR variable by the exact name of device_dsc
@@ -141,12 +141,31 @@ please contact mla_licensing@microchip.com
 
 
 /** DEVICE CLASS USAGE *********************************************/
+#define USB_USE_AUDIO_CLASS
 #define USB_USE_AUDIO_MIDI
 #define USB_USE_HID
+
+#define DESCRIPTOR_INTERFACE_ID 0x00
+#define AUDIO_MIDI_INTERFACE_ID 0x01
+#define AUDIO_HID_INTERFACE_ID 0x02
+#define AUDIO_CONTROL_INTERFACE_ID 0x03
+#define AUDIO_IN_INTERFACE_ID 0x04
+#define AUDIO_OUT_INTERFACE_ID 0x05
+
+#define AUDIO_SAMPLE_INPUT      1
+#define AUDIO_USB_INPUT         2
+#define AUDIO_USB_OUTPUT        3
+#define AUDIO_COIL_OUTPUT       4
+#define AUDIO_CONTROL_UNIT1     5
+#define AUDIO_CONTROL_UNIT2     6
 
 /** ENDPOINTS ALLOCATION *******************************************/
 #define USB_DEVICE_AUDIO_MIDI_ENDPOINT             1
 #define USB_DEVICE_AUDIO_CONFIG_ENDPOINT           2
+#define USB_DEVICE_AUDIO_OUTPUT_ENDPOINT           3
+#define USB_DEVICE_AUDIO_INPUT_ENDPOINT            4
+#define USB_DEVICE_AUDIO_CONTROL_ENDPOINT          5
+
 #define HID_INTF_ID             0x02
 #define HID_INT_OUT_EP_SIZE     3
 #define HID_INT_IN_EP_SIZE      3

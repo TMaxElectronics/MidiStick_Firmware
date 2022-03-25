@@ -3,29 +3,30 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="5">
         <file>
             <url>usb_events.c</url>
-            <bookmark id="3">
-                <name/>
-                <line>36</line>
-                <key/>
-            </bookmark>
             <bookmark id="4">
                 <name/>
-                <line>41</line>
+                <line>28</line>
                 <key/>
             </bookmark>
             <bookmark id="5">
                 <name/>
-                <line>46</line>
+                <line>28</line>
                 <key/>
             </bookmark>
             <bookmark id="1">
                 <name/>
-                <line>52</line>
+                <line>28</line>
                 <key/>
             </bookmark>
         </file>
     </editor-bookmarks>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
-        <group/>
+        <group>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/usb%20lib/usb_config.h</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/usb_descriptors.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/usb_events.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/main.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/MidiController.c</file>
+        </group>
     </open-files>
 </project-private>

@@ -20,7 +20,7 @@ please contact mla_licensing@microchip.com
 /** INCLUDES *******************************************************/
 #include "MidiController.h"
 
-#include "usb lib/usb_device.h"
+#include "usb_device.h"
 
 
 bool USER_USB_CALLBACK_EVENT_HANDLER(USB_EVENT event, void *pdata, uint16_t size)
@@ -53,7 +53,7 @@ bool USER_USB_CALLBACK_EVENT_HANDLER(USB_EVENT event, void *pdata, uint16_t size
             /* When the device is configured, we can (re)initialize the demo
              * code. */
             Midi_init();
-            //APP_DeviceAudioMIDIInitialize();
+            USBAudio_init();
             break;
 
         case EVENT_SET_DESCRIPTOR:
@@ -62,6 +62,7 @@ bool USER_USB_CALLBACK_EVENT_HANDLER(USB_EVENT event, void *pdata, uint16_t size
         case EVENT_EP0_REQUEST:
             /* We have received a non-standard USB request.  The HID driver
              * needs to check to see if the request was for it. */
+            USBCheckAudioRequest();
             USBCheckHIDRequest();
             break;
 
