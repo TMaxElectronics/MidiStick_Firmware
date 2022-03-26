@@ -41,7 +41,8 @@ void UART_print(char * format, ...){
 void UART_init(int baudRate1, int baudRate2){
     U2MODE = 0b1000000000000000;                //UART Module ON, U1RX and U1TX only, Autobaud off, 8bit Data no parity, High Speed mode off
     U2STA = 0b0101010000000000;                 //Tx interrupt when all is transmitted, Rx & Tx enabled, Rx interrupt when buffer is full
-    U2BRG = ( 48000000 / ( 16 * baudRate1 ) ) - 1;
+    U2MODEbits.BRGH = 1;
+    U2BRG = ( 48000000 / ( 4 * baudRate1 ) ) - 1;
     //U1RXR = 0b0100;                             //Set U1Rx to be on pin 6
     RPB0R = 0b0010;                             //Set U1Tx to be on pin 2
 }

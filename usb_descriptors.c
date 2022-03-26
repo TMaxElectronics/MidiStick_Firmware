@@ -170,7 +170,7 @@ const uint8_t configDescriptor1[]={
         CS_INTERFACE,                   // CS_INTERFACE Descriptor Type
         INPUT_TERMINAL,                 // INPUT_TERMINAL descriptor subtype
         AUDIO_SAMPLE_INPUT,             // ID of this Terminal.
-        MICROPHONE,                     // Terminal is Microphone (0x01,0x02)
+        DIGITAL_AUDIO,                     // Terminal is Microphone (0x01,0x02)
         0x00,                           // No association
         0x01,                           // One channel
         0x00,0x00,                      // Mono sets no position bits

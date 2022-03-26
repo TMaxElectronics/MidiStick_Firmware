@@ -171,6 +171,7 @@ the document USB Audio Terminal Types */
 #define VIDEODISK 0x0A, 0x07
 #define SYNTHESIZER 0x13, 0x07
 #define RADIO_TX 0x13, 0x07
+#define DIGITAL_AUDIO 0x02, 0x06
 
 
 /** E X T E R N S ************************************************************/

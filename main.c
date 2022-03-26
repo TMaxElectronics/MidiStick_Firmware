@@ -88,7 +88,7 @@ void main(void) {
     initUSB();
     
     //initialize debug UART - this is not needed for normal operation, but does not affect preformance
-    UART_init(115200, 0);
+    UART_init(12000000, 0);
     
     //print device information (fw version, build date&time, bootloader version and serial number)
     UART_sendString("\r\n\n\nMidiStick ", 0); UART_sendString(NVM_getFWVersionString(), 0); UART_sendString(" - from ", 0); UART_sendString(NVM_getFWCompileDate(), 0); UART_sendString(" ", 0); UART_sendString(NVM_getFWCompileTime(), 1);  

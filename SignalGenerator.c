@@ -49,7 +49,7 @@ void SigGen_init(){
     //Note one timer (F = 48MHz), because we can 
     T2CON = 0b01110000;
     IEC0bits.T2IE = 1;
-    IPC2bits.T2IP = 6;
+    IPC2bits.T2IP = 5;
     T2CONbits.ON = 0;
     
     Midi_voice[0].hyperVoice_DCHXCONptr = &DCH0CON; 
@@ -63,7 +63,7 @@ void SigGen_init(){
     //Note two timer (F = 48MHz), because we can 
     T3CON = 0b01110000;
     IEC0bits.T3IE = 1;
-    IPC3bits.T3IP = 6;
+    IPC3bits.T3IP = 5;
     T2CONbits.ON = 0;
     
     Midi_voice[1].hyperVoice_DCHXCONptr = &DCH1CON; 
@@ -77,7 +77,7 @@ void SigGen_init(){
     //Note three timer (F = 48MHz)
     T4CON = 0b01110000;
     IEC0bits.T4IE = 1;
-    IPC4bits.T4IP = 6;
+    IPC4bits.T4IP = 5;
     T4CONbits.ON = 0;
     
     Midi_voice[2].hyperVoice_DCHXCONptr = &DCH2CON; 
@@ -91,7 +91,7 @@ void SigGen_init(){
     //Note four timer (F = 48MHz), because we can 
     T5CON = 0b01110000;
     IEC0bits.T5IE = 1;
-    IPC5bits.T5IP = 6;
+    IPC5bits.T5IP = 5;
     T2CONbits.ON = 0;
     
     Midi_voice[3].hyperVoice_DCHXCONptr = &DCH3CON;
@@ -394,7 +394,7 @@ void __ISR(_TIMER_2_VECTOR) SigGen_tmr2ISR(){
         
         //switch on the output
         SigGen_outputOn = 1;
-        if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));
+        if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? 0 : 0));
     }
 }
 
@@ -473,5 +473,5 @@ inline void SigGen_timerHandler(uint8_t voice){
     IEC0CLR = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
     
     //at this point everything is set up to turn the output off after a safe on time, so we can turn on the output. We have to make sure that the E-Stop is not triggered if it is enabled
-    if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));
+    if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? 0 : 0));
 }
