@@ -53,6 +53,14 @@ void VMS_relinkRamList();
 void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_t dataSize) {
     
     if(input[0] == USB_CMD_GET_PROTOCOL_VERSION){
+        /* protocol Version Table (poorly maintained and only added becaus I lost track of what i did when changing to 6 :( ):
+         * 1    V1.0    
+         * 2    V1.2    Changed config to include expanded configs
+         * 3    ?
+         * 4    V2.0    Added TR&RAW modes to HID packets
+         * 5    V2.1    Audiocompressor config in expconfig
+         *              audio in configuration packet
+        */
         output[0] = 5;
         *handle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, output, dataSize);
     
@@ -355,6 +363,13 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         
     }else if(input[0] == USB_CMD_SET_MASTERVOL){
         SigGen_setMasterVol(input[1]);
+        
+    }else if(input[0] == USB_CMD_SET_ZCD){
+        int16_t threshold =         (input[5] << 8) | input[4];
+        int16_t thresholdWidth =    (input[9] << 8) | input[8];
+        uint32_t lowpass =          input[12];
+        uint32_t holdoff =          (input[17] << 8) | input[16];
+        SigGen_setZCD(threshold, thresholdWidth, lowpass, holdoff, input[24]);
     }
 }
 

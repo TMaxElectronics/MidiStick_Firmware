@@ -85,6 +85,7 @@ typedef struct{
     uint8_t compressorAttac;
     uint8_t compressorSustain;
     uint8_t compressorRelease;
+    uint8_t maxDutyOffset;
 } EXPCFGData;
 
 typedef struct {
@@ -122,7 +123,9 @@ unsigned NVM_isCoilConfigValid(uint8_t index);
 void NVM_eraseFWUpdate();
 void NVM_writeFWUpdate(void* src, uint32_t pageOffset);
 
+void NVM_verifyAndLimitCFG(CFGData * src);
 unsigned NVM_writeCFG(CFGData * src);
+void NVM_verifyAndLimitExpCFG(EXPCFGData * src);
 unsigned NVM_writeExpCFG(EXPCFGData * src);
 unsigned NVM_updateDevicePID(uint16_t newPID);
 

@@ -28,6 +28,9 @@
 #define USB_CMD_LIVE_PREV               0x10
 #define USB_CMD_SET_ADSR_PREV           0x11
 
+#define USB_CMD_SET_ZCD                 0x12
+
+
 #define USB_CMD_GET_PROGRAMM            0x20
 #define USB_CMD_SET_PROGRAMM            0x21
 #define USB_CMD_GET_COIL_CONFIG         0x22

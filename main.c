@@ -97,34 +97,7 @@ void main(void) {
     UART_sendString("Serial number: ", 0); UART_sendInt(NVM_getSerialNumber(), 1);
     free(blVer);
     
-    /* This is a workaround for a glitch in the V1.1 bootloader that caused the opto-transmitter to turn on for one second during initialisation.
-     * How does this dirty fix work? 
-     * Usually flash needs to be erased prior to changing anything in it. This is because of how it is written, as a write operation can only pull bits to 0, not set them to 1.
-     * But in our case all we need is to clear the bit that turns on the transmitter at boot, so we don't technically have to erase the page before writing.
-     * 
-     * To make sure that current value is exactly what what we expect it to be, we check if *instr == 0x34088380, which is the opcode and data for 
-     * ori		$t0, $zero, 0b1000001110000000
-     *                        ^  This is the bit in question
-     * If we find this in the code, we write 0x34080380 which is
-     * ori		$t0, $zero, 0b0000001110000000
-     * So even though this is a dirty fix, it is one that should be ok to do.
-     */
-     
-    volatile uint32_t *instr = 0x9fc004b0;
-    
-    if(*instr != 0x34080380){ UART_sendString("Instruction = ", 0); UART_sendHex(*instr, 0); UART_sendString(" Should be = ", 0); UART_sendHex(0x34080380, 1); }
-    if(*instr == 0x34088380){
-        UART_sendString("Found V1.1 bootloader with existing output glitch! Patching...", 1);
-        
-        NVM_writeWord(instr, 0x34080380);
-
-        UART_sendString("Instruction is now = ", 0); UART_sendHex(*instr, 0);
-        if(*instr != 0x34080380){
-            UART_sendString("Write error! Pray to god that the write did not kill the BL", 1);
-        }
-    }
-    
-    
+    //bootloader V1.1 is deprecated and has not been used for any current devices, so the check is removed for safety reasons
     
     //enable interrupts. the asm stuff is required to set the CP0 register to enable them
     INTCONbits.MVEC = 1;
@@ -142,9 +115,11 @@ void main(void) {
     
     uint32_t lastRun = 0;
     while(1){   //run the required tasks
+        //LATBSET = _LATB_LATB5_MASK;
         APP_DeviceAudioMicrophoneTasks();
         USBDeviceTasks();
         Midi_run();
+        //LATBCLR = _LATB_LATB5_MASK;
         VMS_run();
         
         if(HID_erasePending){

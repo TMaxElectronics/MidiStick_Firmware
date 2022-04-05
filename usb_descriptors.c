@@ -237,7 +237,7 @@ const uint8_t configDescriptor1[]={
         0x07,                           // Size of the descriptor, in bytes (bLength)
         CS_INTERFACE,                   // CS_INTERFACE Descriptor Type (bDescriptorType)
         AS_GENERAL,                     // GENERAL subtype (bDescriptorSubtype)
-        AUDIO_USB_INPUT,                              // Unit ID of the Output Terminal.(bTerminalLink)
+        AUDIO_USB_INPUT,                // Unit ID of the Output Terminal.(bTerminalLink)
         0x01,                           // Interface delay. (bDelay)
         0x01,0x00,                      // PCM Format (wFormatTag)
 
@@ -255,9 +255,9 @@ const uint8_t configDescriptor1[]={
         /*  USB Microphone Standard Endpoint Descriptor */
         0x09,                           // Size of the descriptor, in bytes (bLength)
         0x05,                           // ENDPOINT descriptor (bDescriptorType)
-        USB_DEVICE_AUDIO_INPUT_ENDPOINT | _EP_IN,                  // Endpoint number. (bEndpointAddress)         
+        USB_DEVICE_AUDIO_INPUT_ENDPOINT | _EP_OUT,                  // Endpoint number. (bEndpointAddress)         
         0x09,                           // Isochronous, not shared. (bmAttributes)
-        0x10,0x00,                      // 16 bytes per packet (wMaxPacketSize)
+        0x60,0x00,                      // 16 bytes per packet (wMaxPacketSize)
         0x01,                           // One packet per frame.(bInterval)
         0x00,                           // Unused. (bRefresh)
         0x00,                           // Unused. (bSynchAddress)

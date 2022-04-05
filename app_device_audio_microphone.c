@@ -28,21 +28,30 @@
 #include "usb.h"
 #include "usb_device_audio.h"
 #include "UART32.h"
+#include "SignalGenerator.h"
 
-volatile int16_t * audioData;
+volatile int16_t * audioOutData;
+volatile int16_t * audioInData;
+
 static int16_t volatile txData[48];
-static uint8_t volatile writePointer = 0;
-static uint8_t volatile readPointer = 0;
-static uint8_t volatile dataCount = 0;
+static int16_t RxData[48];
 
-static int16_t RxData[8];
+static uint8_t volatile outWritePointer = 0;
+static uint8_t volatile outReadPointer = 0;
 
+static uint8_t volatile inWritePointer = 0;
+static uint8_t volatile inReadPointer = 0;
+static uint8_t outDataCount = 0;
+static uint8_t inDataCount = 0;
+
+static volatile int16_t sample = 0;
     
 static USB_HANDLE AudioTXHandle;    //USB handle.  Must be initialized to 0 at startup.
 static USB_HANDLE AudioRXHandle;    //USB handle.  Must be initialized to 0 at startup.
 
 void USBAudio_init(){
-    audioData = malloc(514);
+    audioOutData = malloc(514);
+    audioInData = malloc(514);
     
     AudioTXHandle = NULL;
     AudioRXHandle = NULL;
@@ -59,12 +68,16 @@ void USBAudio_init(){
     IPC5bits.AD1IP = 7;
 
     //enable the Audio Streaming(Isochronous) endpoint
-    //USBEnableEndpoint(USB_DEVICE_AUDIO_INPUT_ENDPOINT,USB_OUT_ENABLED | USB_IN_ENABLED | USB_DISALLOW_SETUP);
+    USBEnableEndpoint(USB_DEVICE_AUDIO_INPUT_ENDPOINT, USB_IN_ENABLED | USB_OUT_ENABLED | USB_DISALLOW_SETUP);
     USBEnableEndpoint(USB_DEVICE_AUDIO_OUTPUT_ENDPOINT , USB_IN_ENABLED | USB_DISALLOW_SETUP);
     
-    //USBRxHandle = USBRxOnePacket(USB_DEVICE_AUDIO_INPUT_ENDPOINT, (uint8_t*)RxData, sizeof(RxData));
+    //AudioRXHandle = USBRxOnePacket(USB_DEVICE_AUDIO_INPUT_ENDPOINT, (uint8_t*)RxData, sizeof(RxData));
     
     AD1CON1SET = _AD1CON1_ASAM_MASK;
+}
+
+void Audio_sendSample(int16_t s){
+    sample = s;
 }
 
 int32_t trash;
@@ -72,8 +85,18 @@ int32_t trash;
 void __ISR(_ADC_VECTOR) USBAudio_sampleInt(){
     trash = ADC1BUF0;
     IFS0CLR = _IFS0_AD1IF_MASK;
-    writePointer ++;
-    audioData[writePointer] = (LATB & _LATB_LATB15_MASK) ? 8192 : 0;//(trash > 250000) ? 8192 : -8192;//
+    outWritePointer ++;
+    sample = (LATB & _LATB_LATB15_MASK) ? 25000 : 0; 
+    
+    if(SigGen_genMode == SIGGEN_AUDIO_ZCD){ 
+        if((uint8_t) (inWritePointer - inReadPointer) > 1){ 
+            ++inReadPointer;
+        }
+        //sample = audioInData[inReadPointer];
+        SigGen_handleAudioSample(audioInData[inReadPointer]);
+    }
+    
+    audioOutData[outWritePointer] = sample;//(LATB & _LATB_LATB15_MASK) ? 8192 : 0;//(trash > 250000) ? 8192 : -8192;//
 }
 
 int16_t ma = 0;
@@ -94,31 +117,25 @@ void APP_DeviceAudioMicrophoneTasks()
      * audio file.  Stop playing the file when the button is released.
      */
     /* if we aren't already busy sending data. */
+    
     if(!USBHandleBusy(AudioTXHandle)){
         uint8_t currPos = 0;
         for(currPos = 0; currPos < 48; currPos ++){
-            LATBSET = _LATB_LATB5_MASK;
-            LATBCLR = _LATB_LATB5_MASK;
-            
-            dataCount = writePointer - readPointer;
-            if(dataCount > 1){ 
-                ++readPointer;
-                ma = (audioData[readPointer] + ma) >> 1;
+            outDataCount = outWritePointer - outReadPointer;
+            if(outDataCount > 1){ 
+                ++outReadPointer;
+                ma = (audioOutData[outReadPointer] + ma) >> 1;
             }
-            
-            UART_sendChar(currPos);
-            UART_sendChar(writePointer);
-            UART_sendChar(readPointer);
-            UART_sendChar(dataCount);
-            while((U2STA & _U2STA_TRMT_MASK) == 0);
             txData[currPos] = ma;
         }
         AudioTXHandle = USBTxOnePacket(USB_DEVICE_AUDIO_OUTPUT_ENDPOINT , (uint8_t*) txData, sizeof(txData));
     }
     
-    /*if(!USBHandleBusy(USBRxHandle))
-    {
-        
-        USBRxHandle = USBRxOnePacket(USB_DEVICE_AUDIO_INPUT_ENDPOINT, (uint8_t*)RxData, sizeof(RxData));
-    }*/
+    if(!USBHandleBusy(AudioRXHandle) && SigGen_genMode == SIGGEN_AUDIO_ZCD){
+        AudioRXHandle = USBRxOnePacket(USB_DEVICE_AUDIO_INPUT_ENDPOINT, (uint8_t*)RxData, sizeof(RxData));
+        uint8_t currPos = 0;
+        for(currPos = 0; currPos < 48; currPos ++){
+            audioInData[inWritePointer++] = RxData[currPos];
+        }
+    }
 }

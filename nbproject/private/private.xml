@@ -24,8 +24,15 @@
         <group>
             <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/usb%20lib/usb_config.h</file>
             <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/usb_descriptors.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/app_device_audio_microphone.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/HIDController.c</file>
             <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/usb_events.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/HIDController.h</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/SignalGenerator.h</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/SignalGenerator.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/app_device_audio_microphone.h</file>
             <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/main.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/UART32.c</file>
             <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/MidiController.c</file>
         </group>
     </open-files>

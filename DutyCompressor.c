@@ -26,6 +26,8 @@
 #define COMPSTATE_SUSTAIN 1
 #define COMPSTATE_RELEASE 2
 
+#define COMP_UNITYGAIN 0x400
+
 static int32_t currGain = 1024;
 static uint32_t compressorState = 0; 
 static uint32_t compressorSustainCount = 0; 
@@ -34,7 +36,12 @@ static uint32_t compressorWaitCount = 0;
 void COMP_compress(){
     if(++compressorWaitCount == 10){
         compressorWaitCount = 0;
-        //NVM_getConfig()
+        
+        if(NVM_getExpConfig()->compressorAttac == 0){
+            currGain = COMP_UNITYGAIN;
+            return;
+        }
+    
         uint32_t totalDuty = 0;
 
         //calculate current dutycycle
@@ -45,23 +52,23 @@ void COMP_compress(){
             totalDuty += ourDuty;
         }
 
-        totalDuty = (totalDuty * SigGen_masterVol) >> 8;
+        totalDuty = (totalDuty * SigGen_masterVol) / 0xff;
         totalDuty = (totalDuty * currGain) >> 10;
 
         // are we at > 50% of maxDuty 
         
         //TODO add adjustable parameters
-        if(totalDuty > 5000 * Midi_currCoil->maxDuty){
+        if(totalDuty > 10000 * Midi_currCoil->maxDuty){
             compressorState = COMPSTATE_ATTAC;
-            if((currGain -= 10) < 0) currGain = 0;
-            //UART_print("ATTACING: %d with %d\r\n", currGain, 1);
+            if((currGain -= NVM_getExpConfig()->compressorAttac) < 0) currGain = 0;
 
-        }else if(totalDuty < 5000 * Midi_currCoil->maxDuty){
+        }else if(totalDuty < 10000 * Midi_currCoil->maxDuty){
             switch(compressorState){
                 case COMPSTATE_ATTAC:
                     compressorSustainCount = 0;
+                    //continue to next case
                 case COMPSTATE_SUSTAIN:
-                    if(compressorSustainCount == ((255 - 250) * 10)){
+                    if(compressorSustainCount == NVM_getExpConfig()->compressorSustain){
                         compressorState = COMPSTATE_RELEASE;
                         compressorSustainCount = 0;
                     }else{
@@ -73,7 +80,9 @@ void COMP_compress(){
 
                 case COMPSTATE_RELEASE:
                     //UART_print("Releasing: %d\r\n", currGain);
-                    if((currGain += 10) > 0x400) currGain = 0x400;
+                    if(currGain != COMP_UNITYGAIN){ 
+                        if((currGain += NVM_getExpConfig()->compressorRelease) >= COMP_UNITYGAIN) currGain = COMP_UNITYGAIN;
+                    }
                     break;
             }
         }

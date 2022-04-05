@@ -33,6 +33,7 @@ static uint32_t SigGen_trPulses = 0;
 static uint32_t SigGen_trPulseCount = 0;
 static uint32_t SigGen_holdOff = 0;
 static uint32_t SigGen_watchDogCounter = 0;
+uint32_t en = 1;
 
 uint32_t SigGen_masterVol = SIGGEN_DEFAULTVOLUME;
 
@@ -172,6 +173,12 @@ void SigGen_setMode(GENMODE newMode){
             TMR3 = 0;
             DMACONbits.ON = 0;
             break;
+             
+        case SIGGEN_AUDIO_ZCD:
+            IEC0CLR = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
+            en = 1;
+            DMACONbits.ON = 0;
+            break;
     }
 }
 
@@ -191,6 +198,8 @@ void SigGen_kill(){
     Midi_voice[1].hyperVoiceCount = 0;
     Midi_voice[2].hyperVoiceCount = 0;
     Midi_voice[3].hyperVoiceCount = 0;
+    
+    en = 1;
     
     SigGen_outputOn = 0;
 }
@@ -301,8 +310,14 @@ void SigGen_limit(){
     if(SigGen_holdOff < 2) SigGen_holdOff = 2;
     SigGen_maxOTScaled = (Midi_currCoil->maxOnTime * 100) / 133;
     
-    if(totalDuty > 10000 * Midi_currCoil->maxDuty){
-        scale = (10000000 * Midi_currCoil->maxDuty) / totalDuty;
+    //scale newMaxDuty with the hard limit override. Default maxDutyOffset=64 => maximum factor = 256/64 = 4
+    uint32_t newMaxDuty = (Midi_currCoil->maxDuty * NVM_getExpConfig()->maxDutyOffset) >> 6; 
+    
+    //add a safety limit
+    if(newMaxDuty > 90) newMaxDuty = 90;
+    
+    if(totalDuty > 10000 * newMaxDuty){
+        scale = (10000000 * newMaxDuty) / totalDuty;
         Midi_LED(LED_DUTY_LIMITER, LED_ON);
     }else{
         scale = 1000;
@@ -360,6 +375,73 @@ void SigGen_writeRaw(RAW_WRITE_NOTES_Cmd * raw){
     //UART_print("write raw: f1 = %d ot1 = %d f2 = %d ot2 = %d f3 = %d ot3 = %d f4 = %d\r\n", Midi_voice[0].freqCurrent, Midi_voice[0].outputOT, raw->v2Freq, raw->v2OT, raw->v3Freq, raw->v3OT, raw->v4Freq);
 }
 
+int16_t lastSample = 0;
+int16_t lowPass = 0;
+
+int16_t thresholdC = 0;
+int16_t thresholdH = 0;
+int16_t thresholdL = 0;
+int16_t lastPol = 0;
+int16_t currPol = 0;
+int32_t lowPassC = 0;
+uint32_t sampleE = 0;
+
+int32_t currPeakSelect = 0;
+int32_t targetOT = 0;
+
+void SigGen_setZCD(int16_t threshold, int16_t thresholdWidth, uint32_t lowpass, uint32_t holdoff, uint32_t sampleEn){
+    lowPassC = lowpass;
+    thresholdC = threshold;
+    thresholdH = threshold+thresholdWidth;
+    thresholdL = threshold-thresholdWidth;
+    sampleE = sampleEn;
+    
+    SigGen_holdOff = (holdoff * 100) / 133;
+    targetOT = (Midi_currCoil->maxOnTime * 100) / 133;
+    targetOT = (targetOT * SigGen_masterVol) / 0xff;
+}
+
+void SigGen_handleAudioSample(int16_t sample){
+    //return;
+
+    if(SigGen_genMode != SIGGEN_AUDIO_ZCD) return;
+    
+    if(abs(sample) > SigGen_currAudioPeak[0]) SigGen_currAudioPeak[0] = abs(sample);
+    
+    lowPass = ((lowPass*lowPassC) + (sample * (64-lowPassC))) >> 6;
+    
+    currPol = lastPol ? (lowPass > thresholdL) : (lowPass > thresholdH);
+    
+    LATBbits.LATB5 = currPol;
+    
+    if(lastPol && !currPol){
+        int32_t truePeak = SigGen_currAudioPeak[0];
+        //find the peak out of the last 5
+        uint32_t cp = 0;
+        //for(cp = 0; cp < 5; cp++) if(truePeak < currPeak[cp]) truePeak = currPeak[cp];
+        
+        //start the NoteOT timer
+        truePeak *= targetOT;
+        truePeak = truePeak >> 15;
+        
+        if((truePeak > 3) && en){
+            PR1 = truePeak;
+            TMR1 = 0;
+            en = 0;
+            T1CONSET = _T1CON_ON_MASK;
+
+            //switch on the output
+            SigGen_outputOn = 1;
+            if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));
+        }
+            UART_print("P=%d", truePeak);
+        //if(++currPeakSelect > 4) currPeakSelect = 0;
+        //SigGen_currAudioPeak[currPeakSelect] = 0;
+    }
+    lastPol = currPol;
+    if(sampleE) Audio_sendSample(lowPass);
+}
+
 /*
  * How the notes are played:
  * 
@@ -394,7 +476,7 @@ void __ISR(_TIMER_2_VECTOR) SigGen_tmr2ISR(){
         
         //switch on the output
         SigGen_outputOn = 1;
-        if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? 0 : 0));
+        if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));
     }
 }
 
@@ -424,13 +506,14 @@ void __ISR(_TIMER_5_VECTOR) SigGen_tmr5ISR(){
 void __ISR(_TIMER_1_VECTOR) SigGen_noteOffISR(){
     IFS0CLR = _IFS0_T1IF_MASK;
     
-    LATBCLR = _LATB_LATB15_MASK | _LATB_LATB5_MASK; //turn off the output
+    LATBCLR = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0)); //turn off the output
     if(SigGen_outputOn){
         SigGen_outputOn = 0;
         PR1 = SigGen_holdOff;
         //IFS0CLR = _IFS0_T2IF_MASK | _IFS0_T3IF_MASK | _IFS0_T4IF_MASK | _IFS0_T5IF_MASK;
         TMR1 = 0;
     }else{
+        en = 1;
         T1CONCLR = _T1CON_ON_MASK;
         IEC0SET = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
     }
@@ -473,5 +556,5 @@ inline void SigGen_timerHandler(uint8_t voice){
     IEC0CLR = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
     
     //at this point everything is set up to turn the output off after a safe on time, so we can turn on the output. We have to make sure that the E-Stop is not triggered if it is enabled
-    if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? 0 : 0));
+    if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));
 }

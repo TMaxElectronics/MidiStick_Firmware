@@ -131,6 +131,9 @@ void Midi_init(){
 void Midi_SOFHandler(){
     if(!Midi_initialized) return;
     
+    SigGen_currAudioPeak[0] -= 10;
+    if(SigGen_currAudioPeak[0] < 0) SigGen_currAudioPeak[0] = 0;
+    
     unsigned anyNoteOn = 0;
     
     if(SigGen_genMode == SIGGEN_music4V | SigGen_genMode == SIGGEN_musicSID){
@@ -393,6 +396,10 @@ void Midi_run(){
                 Midi_setEnabled(0);
                 CFGData * newData = malloc(sizeof(CFGData));
                 memcpy(newData, &ConfigReceivedDataBuffer[1], sizeof(CFGData));
+                
+                //verify data to make sure we don't write rubbish
+                NVM_verifyAndLimitCFG(newData);
+                
                 NVM_writeCFG(newData);
                 free(newData);
                 LATBSET = _LATB_LATB7_MASK | _LATB_LATB8_MASK | _LATB_LATB9_MASK;
@@ -401,13 +408,17 @@ void Midi_run(){
 
             }else if(ConfigReceivedDataBuffer[0] == USB_CMD_GET_EXP_DEVCFG){        //read device configuration parameters
                 ToSendDataBuffer[0] = USB_CMD_GET_EXP_DEVCFG;
-                memcpy(&ToSendDataBuffer[1], NVM_getExpConfig(), 63);  //28 = sizeof(CFGData), ignoring device specific stuff, the PC gets through other API calls
+                memcpy(&ToSendDataBuffer[1], NVM_getExpConfig(), sizeof(EXPCFGData));
                 Midi_configTxHandle = USBTxOnePacket(USB_DEVICE_AUDIO_CONFIG_ENDPOINT, ToSendDataBuffer,64);
 
             }else if(ConfigReceivedDataBuffer[0] == USB_CMD_SET_EXP_DEVCFG){        //write device configuration parameters
                 Midi_setEnabled(0);
                 EXPCFGData * newData = malloc(sizeof(EXPCFGData));
                 memcpy(newData, &ConfigReceivedDataBuffer[1], sizeof(EXPCFGData));
+                
+                //verify data to make sure we don't write rubbish
+                NVM_verifyAndLimitExpCFG(newData);
+                
                 NVM_writeExpCFG(newData);
                 free(newData);
                 Midi_setEnabled(1);

@@ -48,7 +48,7 @@ CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};           
 //initialize the default configuration
 const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = LED_DUTY_LIMITER, .cfg.ledMode2 = LED_POWER, .cfg.ledMode3 = LED_DATA, .cfg.auxMode = 0, .cfg.fwVersion = "V2.2"
     , .cfg.fwStatus = 0x11, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.expCfg.compressorRelease), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x6162, 
-    .expCfg.stereoPosition = 64, .expCfg.stereoWidth = 16, .expCfg.stereoSlope = 255, .expCfg.flags = CONFIG_KEEP_CC, .expCfg.selectedCC = 0xff, .expCfg.compressorAttac = 1, .expCfg.compressorSustain = 155, .expCfg.compressorRelease = 1};
+    .expCfg.stereoPosition = 64, .expCfg.stereoWidth = 64, .expCfg.stereoSlope = 255, .expCfg.flags = CONFIG_KEEP_CC, .expCfg.selectedCC = 0xff, .expCfg.compressorAttac = 10, .expCfg.compressorSustain = 155, .expCfg.compressorRelease = 10, .expCfg.maxDutyOffset = 64};
 
 const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {FORCE_SETTINGS_OVERRIDE_MIN_FWVER};                               //dummy data
 const volatile uint8_t NVM_mapMem[MAPMEM_SIZE] __attribute__((space(fwUpgradeReserved), address(0x9d020000 + BYTE_PAGE_SIZE))) = {0};                       //dummy data
@@ -97,6 +97,7 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
         //make sure all parameters are within their valid range, if one is outside it, write the default value
         //This is needed if a setting was added, as the value at that location is not predictable, and could potenitally cause problems
         //If for example a device with V0.9 was updated to V0.91 (where the custom Pids were added) it would have a pid of 0x3e1, which would effectively soft brick the device
+        
         if(buffer->name[0] == 0){
             strcpy(buffer->name, "Midi Stick");
         }
@@ -131,6 +132,15 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
 
         if(expBuffer->stereoSlope == 0){
             expBuffer->stereoSlope = 0xff;
+        }
+        
+        //make doubly sure that the maximum duty cycle override value added in V2.1 is forced to 1 if we update from a previous version
+        //how we do this is a little hacky... before the update this position always had bits above the first 8 set so if the value > 0xff we are invalid
+        if(NVM_getExpConfig()->compressorAttac == sizeof(USBDevNameHeader) && NVM_getExpConfig()->compressorSustain == USB_DESCRIPTOR_STRING){ 
+            NVM_getExpConfig()->compressorAttac = 10;
+            NVM_getExpConfig()->compressorSustain = 100;
+            NVM_getExpConfig()->compressorRelease = 10;
+            NVM_getExpConfig()->maxDutyOffset = 64;
         }
 
         memcpy(buffer->fwVersion, updatedCFG->fwVersion, 22);
@@ -187,6 +197,23 @@ unsigned NVM_writeCFG(CFGData * src){
     //UART_sendString("write:  ", 0); UART_sendString(ConfigData.cfg.name, 1); 
     free(settingsBuffer);
     return 1;
+}
+
+void NVM_verifyAndLimitExpCFG(EXPCFGData * src){
+    if(src->maxDutyOffset < 64) src->maxDutyOffset = 64;
+
+    if(src->stereoPosition > 127) src->stereoPosition = 0;
+    if(src->stereoWidth >= 65) src->stereoWidth = 64;
+    if(src->stereoSlope == 0) src->stereoSlope = 0xff;
+}
+
+void NVM_verifyAndLimitCFG(CFGData * src){
+    if(src->name[0] == 0) strcpy(src->name, "Midi Stick");
+    if(src->ledMode1 > LED_TYPE_COUNT) src->ledMode1 = LED_DATA;
+    if(src->ledMode2 > LED_TYPE_COUNT) src->ledMode2 = LED_DUTY_LIMITER;
+    if(src->ledMode3 > LED_TYPE_COUNT) src->ledMode3 = LED_OUT_ON;
+    if(src->auxMode > AUX_MODE_COUNT) src->auxMode = AUX_AUDIO;
+    if(!(src->USBPID >= 0x6162 && src->USBPID < 0x6169)) src->USBPID = 0x6162;
 }
 
 unsigned NVM_writeExpCFG(EXPCFGData * src){
