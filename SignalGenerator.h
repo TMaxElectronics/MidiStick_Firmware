@@ -28,8 +28,10 @@
 #define SIGGEN_DEFAULTVOLUME 0xff
 
 typedef enum {SIGGEN_music4V, SIGGEN_musicSID, SIGGEN_TR, SIGGEN_AUDIO_ZCD} GENMODE;
-GENMODE SigGen_genMode;
-int32_t SigGen_currAudioPeak[5];
+typedef enum {SIGGEN_TRIGGER_RISING, SIGGEN_TRIGGER_FALLING, SIGGEN_TRIGGER_ANY} TRIGMODE;
+extern GENMODE SigGen_genMode;
+extern int32_t SigGen_currAudioPeak[];
+extern uint32_t SigGen_audioPreview;
 
 extern uint32_t SigGen_masterVol;
 
@@ -66,6 +68,8 @@ void SigGen_resetMasterVol();
 
 void SigGen_handleAudioSample(int16_t sample);
 
-void SigGen_setZCD(int16_t threshold, int16_t thresholdWidth, uint32_t lowpass, uint32_t holdoff, uint32_t sampleEn);
+void SigGen_setZCD(int16_t threshold, int16_t thresholdWidth, uint32_t f1, uint32_t f2, uint32_t holdoff, uint32_t sampleEn, uint32_t triggerMode);
+
+void SigGen_integrateOT();
 
 #endif

@@ -307,6 +307,10 @@ unsigned NVM_readCoilConfig(CoilConfig * dest, uint8_t index){
 }
 
 unsigned NVM_writeCoilConfig(CoilConfig * src, uint8_t index){
+    if(src->maxOnTime > 32768) src->maxOnTime = 32768;
+    if(src->maxOnTime < src->minOnTime) src->minOnTime = 0;
+    if(src->maxOnTime < src->minOnTime) src->minOnTime = 0;
+    
     if((uint8_t) ConfigData.coils[index].name[0] == 0xff){     //has the memory been cleared aleady?
         if(src->maxDuty > 95 || src->maxOnTime > 10000) return;
         NVM_memcpy4(&ConfigData.coils[index], src, sizeof(CoilConfig)); //if it is, we only need to write the data

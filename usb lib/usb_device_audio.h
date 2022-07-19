@@ -208,4 +208,5 @@ extern volatile uint8_t CtrlTrfData[USB_EP0_BUFF_SIZE];
   
  *******************************************************************/
 void USBCheckAudioRequest(void);
+
 #endif //AUDIO_H

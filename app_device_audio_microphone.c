@@ -45,6 +45,7 @@ static uint8_t outDataCount = 0;
 static uint8_t inDataCount = 0;
 
 static volatile int16_t sample = 0;
+static uint32_t mute = 0;
     
 static USB_HANDLE AudioTXHandle;    //USB handle.  Must be initialized to 0 at startup.
 static USB_HANDLE AudioRXHandle;    //USB handle.  Must be initialized to 0 at startup.
@@ -76,27 +77,42 @@ void USBAudio_init(){
     AD1CON1SET = _AD1CON1_ASAM_MASK;
 }
 
+void Audio_mute(uint32_t en){
+    mute = en;
+}
+
 void Audio_sendSample(int16_t s){
     sample = s;
 }
 
 int32_t trash;
+uint32_t divCount = 0;
 
 void __ISR(_ADC_VECTOR) USBAudio_sampleInt(){
     trash = ADC1BUF0;
     IFS0CLR = _IFS0_AD1IF_MASK;
+    
     outWritePointer ++;
-    sample = (LATB & _LATB_LATB15_MASK) ? 25000 : 0; 
     
     if(SigGen_genMode == SIGGEN_AUDIO_ZCD){ 
+        if(!SigGen_audioPreview) sample = (LATB & _LATB_LATB15_MASK) ? 25000 : 0; 
+        
         if((uint8_t) (inWritePointer - inReadPointer) > 1){ 
             ++inReadPointer;
         }
-        //sample = audioInData[inReadPointer];
-        SigGen_handleAudioSample(audioInData[inReadPointer]);
+    
+        SigGen_integrateOT();
+        
+        //zcd audio sample processing occurs at 16kHz due to high cpu load
+        if(++divCount == 2){
+            divCount = 0;
+            SigGen_handleAudioSample(audioInData[inReadPointer]);
+        }
+    }else{
+        sample = (LATB & _LATB_LATB15_MASK) ? 25000 : 0; 
     }
     
-    audioOutData[outWritePointer] = sample;//(LATB & _LATB_LATB15_MASK) ? 8192 : 0;//(trash > 250000) ? 8192 : -8192;//
+    audioOutData[outWritePointer] = mute ? 0 : sample;
 }
 
 int16_t ma = 0;

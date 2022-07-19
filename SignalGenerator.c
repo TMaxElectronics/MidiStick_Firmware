@@ -18,12 +18,15 @@
 */
 
 #include <xc.h>
+#include <cp0defs.h>
 #include <stdint.h>
 
 #include "MidiController.h"
 #include "SignalGenerator.h"
 #include "UART32.h"
 #include "ADSREngine.h"
+#include "FIR_Bandpass.h"
+#include "app_device_audio_microphone.h"
 
 static unsigned SigGen_outputOn = 0;
 static uint32_t SigGen_maxOTScaled = 0;
@@ -33,9 +36,36 @@ static uint32_t SigGen_trPulses = 0;
 static uint32_t SigGen_trPulseCount = 0;
 static uint32_t SigGen_holdOff = 0;
 static uint32_t SigGen_watchDogCounter = 0;
+
+static int32_t plusCoef, minusCoef, maxCoef;
+static TRIGMODE SigGen_ZCDTriggerMode = SIGGEN_TRIGGER_ANY;
+static int32_t integrand = 0;
+static int32_t scaler = 1;
+static int32_t limit = 0;
+
+int16_t lastSample = 0;
+int16_t lowPass = 0;
+
+int16_t thresholdC = 0;
+int16_t thresholdH = 0;
+int16_t thresholdL = 0;
+int16_t lastPol = 0;
+int16_t currPol = 0;
+int32_t lowPassC = 0;
+uint32_t SigGen_audioPreview = 0;
+
+int32_t currPeakSelect = 0;
+int32_t targetOT = 0;
+
+static FIR_HANDLE_t * SigGen_filterHandle = 0;
+
 uint32_t en = 1;
 
+int32_t SigGen_currAudioPeak[5];
+GENMODE SigGen_genMode;
+
 uint32_t SigGen_masterVol = SIGGEN_DEFAULTVOLUME;
+uint32_t processTime = 0;
 
 void SigGen_init(){
     //enable DMA for hyperVoice (tm)
@@ -104,6 +134,20 @@ void SigGen_init(){
     DCH3CSIZ = 2;
 }
 
+static void SigGen_calculateZCDCoefficients(){
+    targetOT = (Midi_currCoil->maxOnTime * 100) / 133;
+    targetOT = (targetOT * SigGen_masterVol) / 0xff;
+    
+    scaler = (Midi_currCoil->maxOnTime * 48000) / 1000000; //OT samples per maximum ot
+    if(scaler == 0) scaler = 1;
+
+    maxCoef = targetOT * scaler;
+    plusCoef = targetOT;
+    minusCoef = plusCoef * Midi_currCoil->maxDuty / 100;
+    
+    UART_print("Got new duty limiter coefficients: scaler=%d maxCoef=%d plusCoef=%d minusCoef=%d int = %d\r\n", scaler, maxCoef, plusCoef, minusCoef, integrand);
+}
+
 void SigGen_setTR(uint32_t freq, uint32_t ot, uint32_t burstLength, uint32_t burstDelay){ 
     if(SigGen_genMode != SIGGEN_TR) return;
     
@@ -153,6 +197,7 @@ void SigGen_setTR(uint32_t freq, uint32_t ot, uint32_t burstLength, uint32_t bur
 void SigGen_setMode(GENMODE newMode){
     SigGen_kill();
     SigGen_genMode = newMode;
+    UART_print("new mode: %d\r\n", newMode);
     
     switch(newMode){
         case SIGGEN_music4V:
@@ -176,9 +221,20 @@ void SigGen_setMode(GENMODE newMode){
              
         case SIGGEN_AUDIO_ZCD:
             IEC0CLR = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
+            
+            SigGen_calculateZCDCoefficients();
+            
+            UART_print("creating filter, last filter time = %d\r\n", processTime);
+            if(SigGen_filterHandle == 0) SigGen_filterHandle = FIR_create(80, 400, 24000);
             en = 1;
             DMACONbits.ON = 0;
+            UART_print("ZCD ready\r\n");
             break;
+    }
+    
+    if(newMode != SIGGEN_AUDIO_ZCD && SigGen_filterHandle != 0){
+        FIR_dispose(SigGen_filterHandle);
+        SigGen_filterHandle = 0;
     }
 }
 
@@ -290,32 +346,44 @@ void SigGen_resetMasterVol(){
 void SigGen_setMasterVol(uint32_t newVol){
     if(newVol > 0xff) return;
     SigGen_masterVol = newVol;
+    
+    if(SigGen_genMode == SIGGEN_AUDIO_ZCD){
+        targetOT = (Midi_currCoil->maxOnTime * 100) / 133;
+        targetOT = (targetOT * SigGen_masterVol) / 0xff;
+    }
+}
+
+void SigGen_integrateOT(){
+    if(SigGen_outputOn) integrand -= plusCoef; else integrand += minusCoef;
+    if(integrand >= maxCoef) integrand = maxCoef;   //signed => most significant bit is -2.147.483.648 and the only negative => if bit 16 == 1 then integrant < 0
+    if(integrand & 0x80000000) integrand = 0;   //signed => most significant bit is -2.147.483.648 and the only negative => if bit 16 == 1 then integrant < 0
 }
 
 void SigGen_limit(){
+    //do normal dutycycle calculations
     uint32_t totalDuty = 0;
     uint32_t scale = 1000;
     uint8_t c = 0;
-    
+
     for(; c < MIDI_VOICECOUNT; c++){
         uint32_t ourDuty = (Midi_voice[c].otCurrent * Midi_voice[c].freqCurrent) / 10; //TODO preemtively increase the frequency used for calculation if noise is on
         if(Midi_voice[c].hyperVoiceCount == 2 && Midi_voice[c].noiseCurrent == 0) ourDuty *= 2;
         totalDuty += ourDuty;
     }
-    
+
     totalDuty = (totalDuty * SigGen_masterVol) / 0xff;
     totalDuty = (totalDuty * COMP_getGain()) >> 10;
-    
+
     SigGen_holdOff = (Midi_currCoil->holdoffTime * 100) / 133;
     if(SigGen_holdOff < 2) SigGen_holdOff = 2;
     SigGen_maxOTScaled = (Midi_currCoil->maxOnTime * 100) / 133;
-    
+
     //scale newMaxDuty with the hard limit override. Default maxDutyOffset=64 => maximum factor = 256/64 = 4
     uint32_t newMaxDuty = (Midi_currCoil->maxDuty * NVM_getExpConfig()->maxDutyOffset) >> 6; 
-    
+
     //add a safety limit
     if(newMaxDuty > 90) newMaxDuty = 90;
-    
+
     if(totalDuty > 10000 * newMaxDuty){
         scale = (10000000 * newMaxDuty) / totalDuty;
         Midi_LED(LED_DUTY_LIMITER, LED_ON);
@@ -324,7 +392,7 @@ void SigGen_limit(){
         Midi_LED(LED_DUTY_LIMITER, LED_OFF);
     }
     //UART_print("duty = %d%% -> scale = %d%%m\r\n", totalDuty / 10000, scale);
-    
+
     //limit noise frequency change
     for(c = 0; c < MIDI_VOICECOUNT; c++){
         if(Midi_voice[c].noiseCurrent > (Midi_voice[c].periodCurrent >> 1)){
@@ -334,13 +402,13 @@ void SigGen_limit(){
             Midi_voice[c].noiseRaw = Midi_voice[c].noiseCurrent;
         }
     }
-    
+
     for(c = 0; c < MIDI_VOICECOUNT; c++){
         uint32_t ot;
         ot = (Midi_voice[c].otCurrent * scale) / 1330;
         ot = (ot * SigGen_masterVol) / 255;
         ot = (ot * COMP_getGain()) >> 10;
-        
+
         Midi_voice[c].outputOT = ot;
     }
 }  
@@ -375,71 +443,80 @@ void SigGen_writeRaw(RAW_WRITE_NOTES_Cmd * raw){
     //UART_print("write raw: f1 = %d ot1 = %d f2 = %d ot2 = %d f3 = %d ot3 = %d f4 = %d\r\n", Midi_voice[0].freqCurrent, Midi_voice[0].outputOT, raw->v2Freq, raw->v2OT, raw->v3Freq, raw->v3OT, raw->v4Freq);
 }
 
-int16_t lastSample = 0;
-int16_t lowPass = 0;
-
-int16_t thresholdC = 0;
-int16_t thresholdH = 0;
-int16_t thresholdL = 0;
-int16_t lastPol = 0;
-int16_t currPol = 0;
-int32_t lowPassC = 0;
-uint32_t sampleE = 0;
-
-int32_t currPeakSelect = 0;
-int32_t targetOT = 0;
-
-void SigGen_setZCD(int16_t threshold, int16_t thresholdWidth, uint32_t lowpass, uint32_t holdoff, uint32_t sampleEn){
-    lowPassC = lowpass;
+void SigGen_setZCD(int16_t threshold, int16_t thresholdWidth, uint32_t f1, uint32_t f2, uint32_t holdoff, uint32_t sampleEn, uint32_t triggerMode){
+    Audio_mute(1);
+    FIR_updateFilterConfig(SigGen_filterHandle, f1, f2);
+    
     thresholdC = threshold;
     thresholdH = threshold+thresholdWidth;
     thresholdL = threshold-thresholdWidth;
-    sampleE = sampleEn;
+    SigGen_audioPreview = sampleEn;
     
-    SigGen_holdOff = (holdoff * 100) / 133;
-    targetOT = (Midi_currCoil->maxOnTime * 100) / 133;
-    targetOT = (targetOT * SigGen_masterVol) / 0xff;
+    SigGen_calculateZCDCoefficients();
+    Audio_mute(0);
+    SigGen_ZCDTriggerMode = triggerMode;
+}
+
+uint32_t scaled = 0;
+
+static void SigGen_triggerZCDPulse(){
+    if(!en) return;
+    int32_t truePeak = SigGen_currAudioPeak[0];
+    
+    truePeak *= targetOT;
+    truePeak = truePeak >> 15;
+
+    scaled = integrand / scaler;
+    if(truePeak > scaled) truePeak = scaled;
+    
+
+    if(truePeak > 3){
+        PR1 = truePeak;
+        TMR1 = 0;
+        en = 0;
+        T1CONSET = _T1CON_ON_MASK;
+
+        //switch on the output
+        SigGen_outputOn = 1;
+        if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));
+    }
 }
 
 void SigGen_handleAudioSample(int16_t sample){
     //return;
+    
+    uint32_t tStart = _CP0_GET_COUNT();
 
     if(SigGen_genMode != SIGGEN_AUDIO_ZCD) return;
     
-    if(abs(sample) > SigGen_currAudioPeak[0]) SigGen_currAudioPeak[0] = abs(sample);
+    lowPass = FIR_filter(SigGen_filterHandle, sample);
     
-    lowPass = ((lowPass*lowPassC) + (sample * (64-lowPassC))) >> 6;
+    if(abs(lowPass) > SigGen_currAudioPeak[0]) SigGen_currAudioPeak[0] = abs(lowPass);
+    if(SigGen_currAudioPeak[0] > 0) SigGen_currAudioPeak[0] -= 1;
     
     currPol = lastPol ? (lowPass > thresholdL) : (lowPass > thresholdH);
     
     LATBbits.LATB5 = currPol;
     
-    if(lastPol && !currPol){
-        int32_t truePeak = SigGen_currAudioPeak[0];
-        //find the peak out of the last 5
-        uint32_t cp = 0;
-        //for(cp = 0; cp < 5; cp++) if(truePeak < currPeak[cp]) truePeak = currPeak[cp];
-        
-        //start the NoteOT timer
-        truePeak *= targetOT;
-        truePeak = truePeak >> 15;
-        
-        if((truePeak > 3) && en){
-            PR1 = truePeak;
-            TMR1 = 0;
-            en = 0;
-            T1CONSET = _T1CON_ON_MASK;
-
-            //switch on the output
-            SigGen_outputOn = 1;
-            if(NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK)) LATBSET = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0));
+    if(lastPol != currPol){
+        if(SigGen_ZCDTriggerMode == SIGGEN_TRIGGER_ANY){
+            SigGen_triggerZCDPulse();
+        }else{
+            if(lastPol){
+                if(SigGen_ZCDTriggerMode == SIGGEN_TRIGGER_RISING){
+                    SigGen_triggerZCDPulse();
+                }
+            }else{
+                if(SigGen_ZCDTriggerMode == SIGGEN_TRIGGER_FALLING){
+                    SigGen_triggerZCDPulse();
+                }
+            }
         }
-            UART_print("P=%d", truePeak);
-        //if(++currPeakSelect > 4) currPeakSelect = 0;
-        //SigGen_currAudioPeak[currPeakSelect] = 0;
     }
+    
     lastPol = currPol;
-    if(sampleE) Audio_sendSample(lowPass);
+    if(SigGen_audioPreview) Audio_sendSample(lowPass);//lowPass); 
+    processTime = _CP0_GET_COUNT() - tStart;
 }
 
 /*
@@ -509,9 +586,15 @@ void __ISR(_TIMER_1_VECTOR) SigGen_noteOffISR(){
     LATBCLR = (_LATB_LATB15_MASK | ((NVM_getConfig()->auxMode == AUX_AUDIO) ? _LATB_LATB5_MASK : 0)); //turn off the output
     if(SigGen_outputOn){
         SigGen_outputOn = 0;
-        PR1 = SigGen_holdOff;
-        //IFS0CLR = _IFS0_T2IF_MASK | _IFS0_T3IF_MASK | _IFS0_T4IF_MASK | _IFS0_T5IF_MASK;
-        TMR1 = 0;
+        if(SigGen_holdOff != 0){
+            PR1 = SigGen_holdOff;
+            //IFS0CLR = _IFS0_T2IF_MASK | _IFS0_T3IF_MASK | _IFS0_T4IF_MASK | _IFS0_T5IF_MASK;
+            TMR1 = 0;
+        }else{
+            en = 1;
+            T1CONCLR = _T1CON_ON_MASK;
+            IEC0SET = _IEC0_T2IE_MASK | _IEC0_T3IE_MASK | _IEC0_T4IE_MASK | _IEC0_T5IE_MASK; 
+        }
     }else{
         en = 1;
         T1CONCLR = _T1CON_ON_MASK;

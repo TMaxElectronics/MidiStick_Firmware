@@ -35,6 +35,7 @@
 #include "types.h"
 #include "mapper.h"
 #include "HIDController.h"
+#include "app_device_audio_microphone.h"
 
 //Note frequency lookup table
 const uint16_t Midi_NoteFreq[128] = {8, 9, 9, 10, 10, 11, 12, 12, 13, 14, 15, 15, 16, 17, 18, 19, 21, 22, 23, 24, 26, 28, 29, 31, 33, 35, 37, 39, 41, 44, 46, 49, 52, 55, 58, 62, 65, 69, 73, 78, 82, 87, 92, 98, 104, 110, 117, 123, 131, 139, 147, 156, 165, 175, 185, 196, 208, 220, 233, 247, 262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494, 523, 554, 587, 622, 659, 698, 740, 784, 831, 880, 932, 988, 1047, 1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976, 2093, 2217, 2349, 2489, 2637, 2794, 2960, 3136, 3322, 3520, 3729, 3951, 4186, 4435, 4699, 4978, 5274, 5588, 5920, 5920, 6645, 7040, 7459, 7902, 8372, 8870, 9397, 9956, 10548, 11175, 11840, 12544};
@@ -464,6 +465,7 @@ void Midi_run(){
                 
             }else if(ConfigReceivedDataBuffer[0] == USB_CMD_ENTER_PROGMODE){    //enter firmware update mode. In this mode only FWUPDATE commands will be processed, and any form of midi data ignored
                 Midi_setEnabled(0);
+                Audio_mute(1);
                 progMode = 1;
                 
             }else if(ConfigReceivedDataBuffer[0] == USB_CMD_CLEAR_ALL_PROGRAMMS){   //batch erase of all program presets, used for bulk writing to limit the overall re-write count
@@ -542,6 +544,7 @@ void Midi_run(){
             }else{
                 
                 if(ConfigReceivedDataBuffer[0] == USB_CMD_EXIT_PROGMODE){       //go back to normal operation
+                    Audio_mute(0);
                     progMode = 0;
                     
                 }else if(ConfigReceivedDataBuffer[0] == USB_CMD_FWUPDATE_ERASE){//erase any possible previous firmware updates

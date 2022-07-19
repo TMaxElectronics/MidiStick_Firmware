@@ -88,7 +88,7 @@ void main(void) {
     initUSB();
     
     //initialize debug UART - this is not needed for normal operation, but does not affect preformance
-    UART_init(12000000, 0);
+    UART_init(115200, 0);
     
     //print device information (fw version, build date&time, bootloader version and serial number)
     UART_sendString("\r\n\n\nMidiStick ", 0); UART_sendString(NVM_getFWVersionString(), 0); UART_sendString(" - from ", 0); UART_sendString(NVM_getFWCompileDate(), 0); UART_sendString(" ", 0); UART_sendString(NVM_getFWCompileTime(), 1);  
@@ -166,6 +166,10 @@ void initUSB() {
 void _general_exception_handler ( void ){
     INTCONbits.MVEC = 0;
     LATBCLR = _LATB_LATB15_MASK | _LATB_LATB5_MASK;  
+    
+    UART_print("---------------------------------------general exception!---------------------------------------------------------------------\r\n");
+    
+    __pic32_software_reset();
     
     while(1){
         LATBINV = _LATB_LATB9_MASK; //blink red led

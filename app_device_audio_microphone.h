@@ -67,3 +67,5 @@ void APP_DeviceAudioMicrophoneTasks();
 void APP_DeviceAudioMicrophoneSOFHandler();
 
 void Audio_sendSample(int16_t sample);
+void Audio_mute(uint32_t en);
+void Audio_sendSample(int16_t s);

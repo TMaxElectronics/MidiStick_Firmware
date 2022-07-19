@@ -365,11 +365,12 @@ void HID_parseCMD(uint8_t * input, uint8_t * output, USB_HANDLE * handle, uint8_
         SigGen_setMasterVol(input[1]);
         
     }else if(input[0] == USB_CMD_SET_ZCD){
-        int16_t threshold =         (input[5] << 8) | input[4];
-        int16_t thresholdWidth =    (input[9] << 8) | input[8];
-        uint32_t lowpass =          input[12];
-        uint32_t holdoff =          (input[17] << 8) | input[16];
-        SigGen_setZCD(threshold, thresholdWidth, lowpass, holdoff, input[24]);
+        int16_t threshold       = (input[5] << 8) | input[4];
+        int16_t thresholdWidth  = (input[9] << 8) | input[8];
+        uint32_t f1             = (input[11] << 8) | input[10];
+        uint32_t f2             = (input[13] << 8) | input[12];
+        uint32_t holdoff        = (input[17] << 8) | input[16];
+        SigGen_setZCD(threshold, thresholdWidth, f1, f2, holdoff, input[24], input[14]);
     }
 }
 

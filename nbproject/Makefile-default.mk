@@ -57,17 +57,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c usb_device_audio.c main.c MidiController.c ConfigManager.c UART32.c ADSREngine.c SignalGenerator.c VMSRoutines.c mapper.c HIDController.c DLL.c DutyCompressor.c app_device_audio_microphone.c
+SOURCEFILES_QUOTED_IF_SPACED=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c usb_device_audio.c main.c MidiController.c ConfigManager.c UART32.c ADSREngine.c SignalGenerator.c VMSRoutines.c mapper.c HIDController.c DLL.c DutyCompressor.c app_device_audio_microphone.c FIR_Bandpass.c
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/usb_device_audio.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/UART32.o ${OBJECTDIR}/ADSREngine.o ${OBJECTDIR}/SignalGenerator.o ${OBJECTDIR}/VMSRoutines.o ${OBJECTDIR}/mapper.o ${OBJECTDIR}/HIDController.o ${OBJECTDIR}/DLL.o ${OBJECTDIR}/DutyCompressor.o ${OBJECTDIR}/app_device_audio_microphone.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/usb_descriptors.o.d ${OBJECTDIR}/usb_device.o.d ${OBJECTDIR}/usb_events.o.d ${OBJECTDIR}/usb_device_hid.o.d ${OBJECTDIR}/usb_device_audio.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/MidiController.o.d ${OBJECTDIR}/ConfigManager.o.d ${OBJECTDIR}/UART32.o.d ${OBJECTDIR}/ADSREngine.o.d ${OBJECTDIR}/SignalGenerator.o.d ${OBJECTDIR}/VMSRoutines.o.d ${OBJECTDIR}/mapper.o.d ${OBJECTDIR}/HIDController.o.d ${OBJECTDIR}/DLL.o.d ${OBJECTDIR}/DutyCompressor.o.d ${OBJECTDIR}/app_device_audio_microphone.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/usb_device_audio.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/UART32.o ${OBJECTDIR}/ADSREngine.o ${OBJECTDIR}/SignalGenerator.o ${OBJECTDIR}/VMSRoutines.o ${OBJECTDIR}/mapper.o ${OBJECTDIR}/HIDController.o ${OBJECTDIR}/DLL.o ${OBJECTDIR}/DutyCompressor.o ${OBJECTDIR}/app_device_audio_microphone.o ${OBJECTDIR}/FIR_Bandpass.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/usb_descriptors.o.d ${OBJECTDIR}/usb_device.o.d ${OBJECTDIR}/usb_events.o.d ${OBJECTDIR}/usb_device_hid.o.d ${OBJECTDIR}/usb_device_audio.o.d ${OBJECTDIR}/main.o.d ${OBJECTDIR}/MidiController.o.d ${OBJECTDIR}/ConfigManager.o.d ${OBJECTDIR}/UART32.o.d ${OBJECTDIR}/ADSREngine.o.d ${OBJECTDIR}/SignalGenerator.o.d ${OBJECTDIR}/VMSRoutines.o.d ${OBJECTDIR}/mapper.o.d ${OBJECTDIR}/HIDController.o.d ${OBJECTDIR}/DLL.o.d ${OBJECTDIR}/DutyCompressor.o.d ${OBJECTDIR}/app_device_audio_microphone.o.d ${OBJECTDIR}/FIR_Bandpass.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/usb_device_audio.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/UART32.o ${OBJECTDIR}/ADSREngine.o ${OBJECTDIR}/SignalGenerator.o ${OBJECTDIR}/VMSRoutines.o ${OBJECTDIR}/mapper.o ${OBJECTDIR}/HIDController.o ${OBJECTDIR}/DLL.o ${OBJECTDIR}/DutyCompressor.o ${OBJECTDIR}/app_device_audio_microphone.o
+OBJECTFILES=${OBJECTDIR}/usb_descriptors.o ${OBJECTDIR}/usb_device.o ${OBJECTDIR}/usb_events.o ${OBJECTDIR}/usb_device_hid.o ${OBJECTDIR}/usb_device_audio.o ${OBJECTDIR}/main.o ${OBJECTDIR}/MidiController.o ${OBJECTDIR}/ConfigManager.o ${OBJECTDIR}/UART32.o ${OBJECTDIR}/ADSREngine.o ${OBJECTDIR}/SignalGenerator.o ${OBJECTDIR}/VMSRoutines.o ${OBJECTDIR}/mapper.o ${OBJECTDIR}/HIDController.o ${OBJECTDIR}/DLL.o ${OBJECTDIR}/DutyCompressor.o ${OBJECTDIR}/app_device_audio_microphone.o ${OBJECTDIR}/FIR_Bandpass.o
 
 # Source Files
-SOURCEFILES=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c usb_device_audio.c main.c MidiController.c ConfigManager.c UART32.c ADSREngine.c SignalGenerator.c VMSRoutines.c mapper.c HIDController.c DLL.c DutyCompressor.c app_device_audio_microphone.c
+SOURCEFILES=usb_descriptors.c usb_device.c usb_events.c usb_device_hid.c usb_device_audio.c main.c MidiController.c ConfigManager.c UART32.c ADSREngine.c SignalGenerator.c VMSRoutines.c mapper.c HIDController.c DLL.c DutyCompressor.c app_device_audio_microphone.c FIR_Bandpass.c
 
 
 
@@ -111,206 +111,218 @@ ${OBJECTDIR}/usb_descriptors.o: usb_descriptors.c  nbproject/Makefile-${CND_CONF
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_descriptors.o.d 
 	@${RM} ${OBJECTDIR}/usb_descriptors.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_descriptors.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_descriptors.o.d" -o ${OBJECTDIR}/usb_descriptors.o usb_descriptors.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_descriptors.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_descriptors.o.d" -o ${OBJECTDIR}/usb_descriptors.o usb_descriptors.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/usb_device.o: usb_device.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_device.o.d 
 	@${RM} ${OBJECTDIR}/usb_device.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_device.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device.o.d" -o ${OBJECTDIR}/usb_device.o usb_device.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_device.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device.o.d" -o ${OBJECTDIR}/usb_device.o usb_device.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/usb_events.o: usb_events.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_events.o.d 
 	@${RM} ${OBJECTDIR}/usb_events.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_events.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_events.o.d" -o ${OBJECTDIR}/usb_events.o usb_events.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_events.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_events.o.d" -o ${OBJECTDIR}/usb_events.o usb_events.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/usb_device_hid.o: usb_device_hid.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_device_hid.o.d 
 	@${RM} ${OBJECTDIR}/usb_device_hid.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_device_hid.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device_hid.o.d" -o ${OBJECTDIR}/usb_device_hid.o usb_device_hid.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_device_hid.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device_hid.o.d" -o ${OBJECTDIR}/usb_device_hid.o usb_device_hid.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/usb_device_audio.o: usb_device_audio.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_device_audio.o.d 
 	@${RM} ${OBJECTDIR}/usb_device_audio.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_device_audio.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device_audio.o.d" -o ${OBJECTDIR}/usb_device_audio.o usb_device_audio.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_device_audio.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device_audio.o.d" -o ${OBJECTDIR}/usb_device_audio.o usb_device_audio.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/main.o: main.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/main.o.d 
 	@${RM} ${OBJECTDIR}/main.o 
-	@${FIXDEPS} "${OBJECTDIR}/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/main.o.d" -o ${OBJECTDIR}/main.o main.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/main.o.d" -o ${OBJECTDIR}/main.o main.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/MidiController.o: MidiController.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/MidiController.o.d 
 	@${RM} ${OBJECTDIR}/MidiController.o 
-	@${FIXDEPS} "${OBJECTDIR}/MidiController.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/MidiController.o.d" -o ${OBJECTDIR}/MidiController.o MidiController.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/MidiController.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/MidiController.o.d" -o ${OBJECTDIR}/MidiController.o MidiController.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/ConfigManager.o: ConfigManager.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/ConfigManager.o.d 
 	@${RM} ${OBJECTDIR}/ConfigManager.o 
-	@${FIXDEPS} "${OBJECTDIR}/ConfigManager.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/ConfigManager.o.d" -o ${OBJECTDIR}/ConfigManager.o ConfigManager.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/ConfigManager.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/ConfigManager.o.d" -o ${OBJECTDIR}/ConfigManager.o ConfigManager.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/UART32.o: UART32.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/UART32.o.d 
 	@${RM} ${OBJECTDIR}/UART32.o 
-	@${FIXDEPS} "${OBJECTDIR}/UART32.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/UART32.o.d" -o ${OBJECTDIR}/UART32.o UART32.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/UART32.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/UART32.o.d" -o ${OBJECTDIR}/UART32.o UART32.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/ADSREngine.o: ADSREngine.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/ADSREngine.o.d 
 	@${RM} ${OBJECTDIR}/ADSREngine.o 
-	@${FIXDEPS} "${OBJECTDIR}/ADSREngine.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/ADSREngine.o.d" -o ${OBJECTDIR}/ADSREngine.o ADSREngine.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/ADSREngine.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/ADSREngine.o.d" -o ${OBJECTDIR}/ADSREngine.o ADSREngine.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/SignalGenerator.o: SignalGenerator.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/SignalGenerator.o.d 
 	@${RM} ${OBJECTDIR}/SignalGenerator.o 
-	@${FIXDEPS} "${OBJECTDIR}/SignalGenerator.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/SignalGenerator.o.d" -o ${OBJECTDIR}/SignalGenerator.o SignalGenerator.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/SignalGenerator.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/SignalGenerator.o.d" -o ${OBJECTDIR}/SignalGenerator.o SignalGenerator.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/VMSRoutines.o: VMSRoutines.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/VMSRoutines.o.d 
 	@${RM} ${OBJECTDIR}/VMSRoutines.o 
-	@${FIXDEPS} "${OBJECTDIR}/VMSRoutines.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/VMSRoutines.o.d" -o ${OBJECTDIR}/VMSRoutines.o VMSRoutines.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/VMSRoutines.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/VMSRoutines.o.d" -o ${OBJECTDIR}/VMSRoutines.o VMSRoutines.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/mapper.o: mapper.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/mapper.o.d 
 	@${RM} ${OBJECTDIR}/mapper.o 
-	@${FIXDEPS} "${OBJECTDIR}/mapper.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/mapper.o.d" -o ${OBJECTDIR}/mapper.o mapper.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/mapper.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/mapper.o.d" -o ${OBJECTDIR}/mapper.o mapper.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/HIDController.o: HIDController.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/HIDController.o.d 
 	@${RM} ${OBJECTDIR}/HIDController.o 
-	@${FIXDEPS} "${OBJECTDIR}/HIDController.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/HIDController.o.d" -o ${OBJECTDIR}/HIDController.o HIDController.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/HIDController.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/HIDController.o.d" -o ${OBJECTDIR}/HIDController.o HIDController.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/DLL.o: DLL.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/DLL.o.d 
 	@${RM} ${OBJECTDIR}/DLL.o 
-	@${FIXDEPS} "${OBJECTDIR}/DLL.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/DLL.o.d" -o ${OBJECTDIR}/DLL.o DLL.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/DLL.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/DLL.o.d" -o ${OBJECTDIR}/DLL.o DLL.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/DutyCompressor.o: DutyCompressor.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/DutyCompressor.o.d 
 	@${RM} ${OBJECTDIR}/DutyCompressor.o 
-	@${FIXDEPS} "${OBJECTDIR}/DutyCompressor.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/DutyCompressor.o.d" -o ${OBJECTDIR}/DutyCompressor.o DutyCompressor.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/DutyCompressor.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/DutyCompressor.o.d" -o ${OBJECTDIR}/DutyCompressor.o DutyCompressor.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/app_device_audio_microphone.o: app_device_audio_microphone.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/app_device_audio_microphone.o.d 
 	@${RM} ${OBJECTDIR}/app_device_audio_microphone.o 
-	@${FIXDEPS} "${OBJECTDIR}/app_device_audio_microphone.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/app_device_audio_microphone.o.d" -o ${OBJECTDIR}/app_device_audio_microphone.o app_device_audio_microphone.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/app_device_audio_microphone.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/app_device_audio_microphone.o.d" -o ${OBJECTDIR}/app_device_audio_microphone.o app_device_audio_microphone.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
+	
+${OBJECTDIR}/FIR_Bandpass.o: FIR_Bandpass.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/FIR_Bandpass.o.d 
+	@${RM} ${OBJECTDIR}/FIR_Bandpass.o 
+	@${FIXDEPS} "${OBJECTDIR}/FIR_Bandpass.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/FIR_Bandpass.o.d" -o ${OBJECTDIR}/FIR_Bandpass.o FIR_Bandpass.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 else
 ${OBJECTDIR}/usb_descriptors.o: usb_descriptors.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_descriptors.o.d 
 	@${RM} ${OBJECTDIR}/usb_descriptors.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_descriptors.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_descriptors.o.d" -o ${OBJECTDIR}/usb_descriptors.o usb_descriptors.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_descriptors.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_descriptors.o.d" -o ${OBJECTDIR}/usb_descriptors.o usb_descriptors.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/usb_device.o: usb_device.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_device.o.d 
 	@${RM} ${OBJECTDIR}/usb_device.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_device.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device.o.d" -o ${OBJECTDIR}/usb_device.o usb_device.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_device.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device.o.d" -o ${OBJECTDIR}/usb_device.o usb_device.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/usb_events.o: usb_events.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_events.o.d 
 	@${RM} ${OBJECTDIR}/usb_events.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_events.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_events.o.d" -o ${OBJECTDIR}/usb_events.o usb_events.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_events.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_events.o.d" -o ${OBJECTDIR}/usb_events.o usb_events.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/usb_device_hid.o: usb_device_hid.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_device_hid.o.d 
 	@${RM} ${OBJECTDIR}/usb_device_hid.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_device_hid.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device_hid.o.d" -o ${OBJECTDIR}/usb_device_hid.o usb_device_hid.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_device_hid.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device_hid.o.d" -o ${OBJECTDIR}/usb_device_hid.o usb_device_hid.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/usb_device_audio.o: usb_device_audio.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/usb_device_audio.o.d 
 	@${RM} ${OBJECTDIR}/usb_device_audio.o 
-	@${FIXDEPS} "${OBJECTDIR}/usb_device_audio.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device_audio.o.d" -o ${OBJECTDIR}/usb_device_audio.o usb_device_audio.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/usb_device_audio.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/usb_device_audio.o.d" -o ${OBJECTDIR}/usb_device_audio.o usb_device_audio.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/main.o: main.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/main.o.d 
 	@${RM} ${OBJECTDIR}/main.o 
-	@${FIXDEPS} "${OBJECTDIR}/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/main.o.d" -o ${OBJECTDIR}/main.o main.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/main.o.d" -o ${OBJECTDIR}/main.o main.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/MidiController.o: MidiController.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/MidiController.o.d 
 	@${RM} ${OBJECTDIR}/MidiController.o 
-	@${FIXDEPS} "${OBJECTDIR}/MidiController.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/MidiController.o.d" -o ${OBJECTDIR}/MidiController.o MidiController.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/MidiController.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/MidiController.o.d" -o ${OBJECTDIR}/MidiController.o MidiController.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/ConfigManager.o: ConfigManager.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/ConfigManager.o.d 
 	@${RM} ${OBJECTDIR}/ConfigManager.o 
-	@${FIXDEPS} "${OBJECTDIR}/ConfigManager.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/ConfigManager.o.d" -o ${OBJECTDIR}/ConfigManager.o ConfigManager.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/ConfigManager.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/ConfigManager.o.d" -o ${OBJECTDIR}/ConfigManager.o ConfigManager.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/UART32.o: UART32.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/UART32.o.d 
 	@${RM} ${OBJECTDIR}/UART32.o 
-	@${FIXDEPS} "${OBJECTDIR}/UART32.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/UART32.o.d" -o ${OBJECTDIR}/UART32.o UART32.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/UART32.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/UART32.o.d" -o ${OBJECTDIR}/UART32.o UART32.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/ADSREngine.o: ADSREngine.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/ADSREngine.o.d 
 	@${RM} ${OBJECTDIR}/ADSREngine.o 
-	@${FIXDEPS} "${OBJECTDIR}/ADSREngine.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/ADSREngine.o.d" -o ${OBJECTDIR}/ADSREngine.o ADSREngine.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/ADSREngine.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/ADSREngine.o.d" -o ${OBJECTDIR}/ADSREngine.o ADSREngine.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/SignalGenerator.o: SignalGenerator.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/SignalGenerator.o.d 
 	@${RM} ${OBJECTDIR}/SignalGenerator.o 
-	@${FIXDEPS} "${OBJECTDIR}/SignalGenerator.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/SignalGenerator.o.d" -o ${OBJECTDIR}/SignalGenerator.o SignalGenerator.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/SignalGenerator.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/SignalGenerator.o.d" -o ${OBJECTDIR}/SignalGenerator.o SignalGenerator.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/VMSRoutines.o: VMSRoutines.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/VMSRoutines.o.d 
 	@${RM} ${OBJECTDIR}/VMSRoutines.o 
-	@${FIXDEPS} "${OBJECTDIR}/VMSRoutines.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/VMSRoutines.o.d" -o ${OBJECTDIR}/VMSRoutines.o VMSRoutines.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/VMSRoutines.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/VMSRoutines.o.d" -o ${OBJECTDIR}/VMSRoutines.o VMSRoutines.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/mapper.o: mapper.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/mapper.o.d 
 	@${RM} ${OBJECTDIR}/mapper.o 
-	@${FIXDEPS} "${OBJECTDIR}/mapper.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/mapper.o.d" -o ${OBJECTDIR}/mapper.o mapper.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/mapper.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/mapper.o.d" -o ${OBJECTDIR}/mapper.o mapper.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/HIDController.o: HIDController.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/HIDController.o.d 
 	@${RM} ${OBJECTDIR}/HIDController.o 
-	@${FIXDEPS} "${OBJECTDIR}/HIDController.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/HIDController.o.d" -o ${OBJECTDIR}/HIDController.o HIDController.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/HIDController.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/HIDController.o.d" -o ${OBJECTDIR}/HIDController.o HIDController.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/DLL.o: DLL.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/DLL.o.d 
 	@${RM} ${OBJECTDIR}/DLL.o 
-	@${FIXDEPS} "${OBJECTDIR}/DLL.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/DLL.o.d" -o ${OBJECTDIR}/DLL.o DLL.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/DLL.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/DLL.o.d" -o ${OBJECTDIR}/DLL.o DLL.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/DutyCompressor.o: DutyCompressor.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/DutyCompressor.o.d 
 	@${RM} ${OBJECTDIR}/DutyCompressor.o 
-	@${FIXDEPS} "${OBJECTDIR}/DutyCompressor.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/DutyCompressor.o.d" -o ${OBJECTDIR}/DutyCompressor.o DutyCompressor.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/DutyCompressor.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/DutyCompressor.o.d" -o ${OBJECTDIR}/DutyCompressor.o DutyCompressor.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 ${OBJECTDIR}/app_device_audio_microphone.o: app_device_audio_microphone.c  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} "${OBJECTDIR}" 
 	@${RM} ${OBJECTDIR}/app_device_audio_microphone.o.d 
 	@${RM} ${OBJECTDIR}/app_device_audio_microphone.o 
-	@${FIXDEPS} "${OBJECTDIR}/app_device_audio_microphone.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -I"usb lib" -MMD -MF "${OBJECTDIR}/app_device_audio_microphone.o.d" -o ${OBJECTDIR}/app_device_audio_microphone.o app_device_audio_microphone.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -mdfp=${DFP_DIR}
+	@${FIXDEPS} "${OBJECTDIR}/app_device_audio_microphone.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/app_device_audio_microphone.o.d" -o ${OBJECTDIR}/app_device_audio_microphone.o app_device_audio_microphone.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
+	
+${OBJECTDIR}/FIR_Bandpass.o: FIR_Bandpass.c  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} "${OBJECTDIR}" 
+	@${RM} ${OBJECTDIR}/FIR_Bandpass.o.d 
+	@${RM} ${OBJECTDIR}/FIR_Bandpass.o 
+	@${FIXDEPS} "${OBJECTDIR}/FIR_Bandpass.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -Os -I"usb lib" -MMD -MF "${OBJECTDIR}/FIR_Bandpass.o.d" -o ${OBJECTDIR}/FIR_Bandpass.o FIR_Bandpass.c    -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  
 	
 endif
 
@@ -325,12 +337,12 @@ endif
 ifeq ($(TYPE_IMAGE), DEBUG_RUN)
 dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}: ${OBJECTFILES}  nbproject/Makefile-${CND_CONF}.mk    p32MX270F256B.ld
 	@${MKDIR} dist/${CND_CONF}/${IMAGE_TYPE} 
-	${MP_CC} $(MP_EXTRA_LD_PRE) -g   -mprocessor=$(MP_PROCESSOR_OPTION)  -o dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX} ${OBJECTFILES_QUOTED_IF_SPACED}          -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)   -mreserve=data@0x0:0x1FC -mreserve=boot@0x1FC00490:0x1FC00BEF  -Wl,--defsym=__MPLAB_BUILD=1$(MP_EXTRA_LD_POST)$(MP_LINKER_FILE_OPTION),--defsym=__MPLAB_DEBUG=1,--defsym=__DEBUG=1,-D=__DEBUG_D,--defsym=_min_heap_size=50000,--defsym=_min_stack_size=10000,--no-code-in-dinit,--no-dinit-in-serial-mem,-Map="${DISTDIR}/${PROJECTNAME}.${IMAGE_TYPE}.map",--report-mem,--cref,--memorysummary,dist/${CND_CONF}/${IMAGE_TYPE}/memoryfile.xml -mdfp=${DFP_DIR}
+	${MP_CC} $(MP_EXTRA_LD_PRE) -g   -mprocessor=$(MP_PROCESSOR_OPTION)  -o dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX} ${OBJECTFILES_QUOTED_IF_SPACED}          -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)      -Wl,--defsym=__MPLAB_BUILD=1$(MP_EXTRA_LD_POST)$(MP_LINKER_FILE_OPTION),--defsym=__MPLAB_DEBUG=1,--defsym=__DEBUG=1,-D=__DEBUG_D,--defsym=_min_heap_size=50000,--defsym=_min_stack_size=10000,--no-code-in-dinit,--no-dinit-in-serial-mem,-Map="${DISTDIR}/${PROJECTNAME}.${IMAGE_TYPE}.map",--report-mem,--cref,--memorysummary,dist/${CND_CONF}/${IMAGE_TYPE}/memoryfile.xml 
 	
 else
 dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}: ${OBJECTFILES}  nbproject/Makefile-${CND_CONF}.mk   p32MX270F256B.ld bootloader_v1.3.hex
 	@${MKDIR} dist/${CND_CONF}/${IMAGE_TYPE} 
-	${MP_CC} $(MP_EXTRA_LD_PRE)  -mprocessor=$(MP_PROCESSOR_OPTION)  -o dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${DEBUGGABLE_SUFFIX} ${OBJECTFILES_QUOTED_IF_SPACED}          -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -Wl,--defsym=__MPLAB_BUILD=1$(MP_EXTRA_LD_POST)$(MP_LINKER_FILE_OPTION),--defsym=_min_heap_size=50000,--defsym=_min_stack_size=10000,--no-code-in-dinit,--no-dinit-in-serial-mem,-Map="${DISTDIR}/${PROJECTNAME}.${IMAGE_TYPE}.map",--report-mem,--cref,--memorysummary,dist/${CND_CONF}/${IMAGE_TYPE}/memoryfile.xml -mdfp=${DFP_DIR}
+	${MP_CC} $(MP_EXTRA_LD_PRE)  -mprocessor=$(MP_PROCESSOR_OPTION)  -o dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${DEBUGGABLE_SUFFIX} ${OBJECTFILES_QUOTED_IF_SPACED}          -DXPRJ_default=$(CND_CONF)  -legacy-libc  $(COMPARISON_BUILD)  -Wl,--defsym=__MPLAB_BUILD=1$(MP_EXTRA_LD_POST)$(MP_LINKER_FILE_OPTION),--defsym=_min_heap_size=50000,--defsym=_min_stack_size=10000,--no-code-in-dinit,--no-dinit-in-serial-mem,-Map="${DISTDIR}/${PROJECTNAME}.${IMAGE_TYPE}.map",--report-mem,--cref,--memorysummary,dist/${CND_CONF}/${IMAGE_TYPE}/memoryfile.xml 
 	${MP_CC_DIR}\\xc32-bin2hex dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.${DEBUGGABLE_SUFFIX} 
 	@echo "Creating unified hex file"
 	@"C:/Program Files (x86)/Microchip/MPLABX/v5.30/mplab_platform/platform/../mplab_ide/modules/../../bin/hexmate" --edf="C:/Program Files (x86)/Microchip/MPLABX/v5.30/mplab_platform/platform/../mplab_ide/modules/../../dat/en_msgs.txt" dist/${CND_CONF}/${IMAGE_TYPE}/Synth.X.${IMAGE_TYPE}.hex bootloader_v1.3.hex -odist/${CND_CONF}/production/Synth.X.production.unified.hex
