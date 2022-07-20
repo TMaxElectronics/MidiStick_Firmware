@@ -134,6 +134,8 @@ void SigGen_init(){
     DCH3CSIZ = 2;
 }
 
+static uint32_t SigGen_zcdHoldoffOverride = 0;
+
 static void SigGen_calculateZCDCoefficients(){
     targetOT = (Midi_currCoil->maxOnTime * 100) / 133;
     targetOT = (targetOT * SigGen_masterVol) / 0xff;
@@ -144,6 +146,9 @@ static void SigGen_calculateZCDCoefficients(){
     maxCoef = targetOT * scaler;
     plusCoef = targetOT;
     minusCoef = plusCoef * Midi_currCoil->maxDuty / 100;
+    
+    SigGen_holdOff = (SigGen_zcdHoldoffOverride * 100) / 133;
+    if(SigGen_holdOff < 2) SigGen_holdOff = 2;
     
     UART_print("Got new duty limiter coefficients: scaler=%d maxCoef=%d plusCoef=%d minusCoef=%d int = %d\r\n", scaler, maxCoef, plusCoef, minusCoef, integrand);
 }
@@ -229,12 +234,15 @@ void SigGen_setMode(GENMODE newMode){
             en = 1;
             DMACONbits.ON = 0;
             UART_print("ZCD ready\r\n");
+            
+            Audio_mute(SigGen_masterVol == 0);
             break;
     }
     
     if(newMode != SIGGEN_AUDIO_ZCD && SigGen_filterHandle != 0){
         FIR_dispose(SigGen_filterHandle);
         SigGen_filterHandle = 0;
+        Audio_mute(0);
     }
 }
 
@@ -350,6 +358,8 @@ void SigGen_setMasterVol(uint32_t newVol){
     if(SigGen_genMode == SIGGEN_AUDIO_ZCD){
         targetOT = (Midi_currCoil->maxOnTime * 100) / 133;
         targetOT = (targetOT * SigGen_masterVol) / 0xff;
+        
+        Audio_mute(newVol == 0);
     }
 }
 
@@ -359,7 +369,17 @@ void SigGen_integrateOT(){
     if(integrand & 0x80000000) integrand = 0;   //signed => most significant bit is -2.147.483.648 and the only negative => if bit 16 == 1 then integrant < 0
 }
 
+unsigned SigGen_isZCDDutyLimited(){
+    return integrand < (maxCoef-1);
+}
+
+unsigned SigGen_isZCDOutOn(){
+    return SigGen_currAudioPeak[0] > 1000;
+}
+
 void SigGen_limit(){
+    if(SigGen_genMode == SIGGEN_AUDIO_ZCD) return;
+    
     //do normal dutycycle calculations
     uint32_t totalDuty = 0;
     uint32_t scale = 1000;
@@ -452,6 +472,8 @@ void SigGen_setZCD(int16_t threshold, int16_t thresholdWidth, uint32_t f1, uint3
     thresholdL = threshold-thresholdWidth;
     SigGen_audioPreview = sampleEn;
     
+    SigGen_zcdHoldoffOverride = holdoff;
+    
     SigGen_calculateZCDCoefficients();
     Audio_mute(0);
     SigGen_ZCDTriggerMode = triggerMode;
@@ -492,7 +514,7 @@ void SigGen_handleAudioSample(int16_t sample){
     lowPass = FIR_filter(SigGen_filterHandle, sample);
     
     if(abs(lowPass) > SigGen_currAudioPeak[0]) SigGen_currAudioPeak[0] = abs(lowPass);
-    if(SigGen_currAudioPeak[0] > 0) SigGen_currAudioPeak[0] -= 1;
+    if(SigGen_currAudioPeak[0] > 2) SigGen_currAudioPeak[0] -= 2;
     
     currPol = lastPol ? (lowPass > thresholdL) : (lowPass > thresholdH);
     
@@ -543,7 +565,7 @@ void __ISR(_TIMER_2_VECTOR) SigGen_tmr2ISR(){
             T2CONCLR = _T2CON_ON_MASK;
         }
         
-        if(SigGen_trOT == 0 || SigGen_trOT > SigGen_maxOTScaled) return;    //make double sure that the maximum OT is not exceeded       || SigGen_watchDogCounter >= 10
+        if(SigGen_trOT == 0 || SigGen_trOT == 1 || SigGen_trOT > SigGen_maxOTScaled) return;    //make double sure that the maximum OT is not exceeded       || SigGen_watchDogCounter >= 10
         
         //start the NoteOT timer
         PR1 = SigGen_trOT;

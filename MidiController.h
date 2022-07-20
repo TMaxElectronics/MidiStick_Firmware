@@ -68,7 +68,7 @@
 #define LED_ADSR_PREVIEW   4
 #define LED_COMPRESSOR     5
 
-#define LED_TYPE_COUNT     5
+#define LED_TYPE_COUNT     6
 
 #define LED_OFF            0
 #define LED_ON             1

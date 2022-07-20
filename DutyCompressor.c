@@ -86,6 +86,12 @@ void COMP_compress(){
                     break;
             }
         }
+        
+        if(currGain < COMP_UNITYGAIN){
+            Midi_LED(LED_COMPRESSOR, LED_ON);
+        }else{
+            Midi_LED(LED_COMPRESSOR, LED_OFF);
+        }
     }
 }
 

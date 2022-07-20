@@ -22,11 +22,14 @@
     </editor-bookmarks>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/Thorb/OneDrive/MPLab%20Projects/Synth.X/ConfigManager.h</file>
-            <file>file:/C:/Users/Thorb/OneDrive/MPLab%20Projects/Synth.X/types.h</file>
-            <file>file:/C:/Users/Thorb/OneDrive/MPLab%20Projects/Synth.X/DutyCompressor.c</file>
-            <file>file:/C:/Users/Thorb/OneDrive/MPLab%20Projects/Synth.X/MidiController.c</file>
-            <file>file:/C:/Users/Thorb/OneDrive/MPLab%20Projects/Synth.X/ConfigManager.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/app_device_audio_microphone.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/ConfigManager.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/HIDController.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/SignalGenerator.h</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/SignalGenerator.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/ConfigManager.h</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/FIR_Bandpass.c</file>
+            <file>file:/F:/OneDrive/MPLab%20Projects/Synth.X/MidiController.c</file>
         </group>
     </open-files>
 </project-private>

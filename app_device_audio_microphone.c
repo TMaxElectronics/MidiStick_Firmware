@@ -103,7 +103,7 @@ void __ISR(_ADC_VECTOR) USBAudio_sampleInt(){
     
         SigGen_integrateOT();
         
-        //zcd audio sample processing occurs at 16kHz due to high cpu load
+        //zcd audio sample processing occurs at 24kHz due to high cpu load (f_s / 2))
         if(++divCount == 2){
             divCount = 0;
             SigGen_handleAudioSample(audioInData[inReadPointer]);

@@ -132,9 +132,6 @@ void Midi_init(){
 void Midi_SOFHandler(){
     if(!Midi_initialized) return;
     
-    SigGen_currAudioPeak[0] -= 10;
-    if(SigGen_currAudioPeak[0] < 0) SigGen_currAudioPeak[0] = 0;
-    
     unsigned anyNoteOn = 0;
     
     if(SigGen_genMode == SIGGEN_music4V | SigGen_genMode == SIGGEN_musicSID){
@@ -150,6 +147,20 @@ void Midi_SOFHandler(){
     
     //Turn the note on LED on if any voices are active, and the E_STOP is closed (or disabled)
     Midi_LED(LED_OUT_ON, anyNoteOn & NVM_getConfig()->auxMode != AUX_E_STOP || (PORTB & _PORTB_RB5_MASK));
+    
+    if(SigGen_genMode == SIGGEN_AUDIO_ZCD){
+        if(SigGen_isZCDDutyLimited()){
+            Midi_LED(LED_DUTY_LIMITER, LED_ON);
+        }else{
+            Midi_LED(LED_DUTY_LIMITER, LED_OFF);
+        }
+        
+        if(SigGen_isZCDOutOn()){
+            Midi_LED(LED_OUT_ON, LED_ON);
+        }else{
+            Midi_LED(LED_OUT_ON, LED_OFF);
+        }
+    }
     
     //count down comms led on time, to make it turn off if no data was received for a while
     if(Midi_currComsLEDTime > 0){

@@ -48,7 +48,7 @@ CoilConfig defaultCoil = {"default coil          ", 0, 0, 10, 30, 0};           
 //initialize the default configuration
 const volatile CONF ConfigData __attribute__((aligned(BYTE_PAGE_SIZE),space(prog), address(0x9d01d000))) = {.cfg.name = "Midi Stick", .cfg.ledMode1 = LED_DUTY_LIMITER, .cfg.ledMode2 = LED_POWER, .cfg.ledMode3 = LED_DATA, .cfg.auxMode = 0, .cfg.fwVersion = "V2.2"
     , .cfg.fwStatus = 0x11, .cfg.resMemStart = ((uint32_t) &ConfigData), .cfg.resMemEnd = ((uint32_t) &ConfigData.expCfg.compressorRelease), .cfg.compileDate = __DATE__, .cfg.compileTime = __TIME__, .devName = {sizeof(USBDevNameHeader),USB_DESCRIPTOR_STRING, {'M','i','d','i','S','t','i','c','k',' ',' ',' ',' ',' '}}, .cfg.USBPID = 0x6162, 
-    .expCfg.stereoPosition = 64, .expCfg.stereoWidth = 64, .expCfg.stereoSlope = 255, .expCfg.flags = CONFIG_KEEP_CC, .expCfg.selectedCC = 0xff, .expCfg.compressorAttac = 10, .expCfg.compressorSustain = 155, .expCfg.compressorRelease = 10, .expCfg.maxDutyOffset = 64};
+    .expCfg.stereoPosition = 64, .expCfg.stereoWidth = 64, .expCfg.stereoSlope = 255, .expCfg.flags = CONFIG_KEEP_CC, .expCfg.selectedCC = 0xff, .expCfg.compressorAttac = 20, .expCfg.compressorSustain = 44, .expCfg.compressorRelease = 20, .expCfg.maxDutyOffset = 64};
 
 const volatile uint8_t FWUpdate[] __attribute__((address(0x9d020000), space(fwUpgradeReserved))) = {FORCE_SETTINGS_OVERRIDE_MIN_FWVER};                               //dummy data
 const volatile uint8_t NVM_mapMem[MAPMEM_SIZE] __attribute__((space(fwUpgradeReserved), address(0x9d020000 + BYTE_PAGE_SIZE))) = {0};                       //dummy data
@@ -138,8 +138,8 @@ void NVM_finishFWUpdate(){      //if an update was just performed, we need to re
         //how we do this is a little hacky... before the update this position always had bits above the first 8 set so if the value > 0xff we are invalid
         if(NVM_getExpConfig()->compressorAttac == sizeof(USBDevNameHeader) && NVM_getExpConfig()->compressorSustain == USB_DESCRIPTOR_STRING){ 
             NVM_getExpConfig()->compressorAttac = 10;
-            NVM_getExpConfig()->compressorSustain = 100;
-            NVM_getExpConfig()->compressorRelease = 10;
+            NVM_getExpConfig()->compressorSustain = 75;
+            NVM_getExpConfig()->compressorRelease = 20;
             NVM_getExpConfig()->maxDutyOffset = 64;
         }
 
@@ -307,15 +307,14 @@ unsigned NVM_readCoilConfig(CoilConfig * dest, uint8_t index){
 }
 
 unsigned NVM_writeCoilConfig(CoilConfig * src, uint8_t index){
-    if(src->maxOnTime > 32768) src->maxOnTime = 32768;
+    if(src->maxOnTime > 32767) src->maxOnTime = 32767;
+    if(src->maxDuty > 95) src->maxDuty = 95;
     if(src->maxOnTime < src->minOnTime) src->minOnTime = 0;
     if(src->maxOnTime < src->minOnTime) src->minOnTime = 0;
     
     if((uint8_t) ConfigData.coils[index].name[0] == 0xff){     //has the memory been cleared aleady?
-        if(src->maxDuty > 95 || src->maxOnTime > 10000) return;
         NVM_memcpy4(&ConfigData.coils[index], src, sizeof(CoilConfig)); //if it is, we only need to write the data
     }else{
-        if(src->maxDuty > 95 || src->maxOnTime > 10000) return;
         void* pageStart = (void*) &ConfigData.coils[0];
         void* settingsBuffer = malloc(PAGE_SIZE);
         memcpy(settingsBuffer, pageStart, PAGE_SIZE);

@@ -72,4 +72,8 @@ void SigGen_setZCD(int16_t threshold, int16_t thresholdWidth, uint32_t f1, uint3
 
 void SigGen_integrateOT();
 
+unsigned SigGen_isZCDDutyLimited();
+
+unsigned SigGen_isZCDOutOn();
+
 #endif
